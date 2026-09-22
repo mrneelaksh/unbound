@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+/* ============================================================
+   UNBOUND — Design System Tokens (Black + White + Light Green Accent)
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* Backgrounds */
+    --color-bg:           #050505;
+    --color-bg-secondary: #0B0B0B;
+    --color-surface:      #101010;
+    --color-elevated:     #161616;
+    --color-surface-3:    #1E1E1E;
+
+    /* Borders */
+    --color-border:       rgba(255, 255, 255, 0.10);
+    --color-border-subtle:rgba(255, 255, 255, 0.06);
+
+    /* Text */
+    --color-text:         #F5F5F5;
+    --color-text-secondary:#A1A1A1;
+    --color-text-tertiary:#6F6F6F;
+
+    /* Intentional High-Tech Light Green Accent */
+    --color-accent:       #C7FF72;
+    --color-accent-secondary:#A7E85B;
+    --color-accent-dim:   rgba(199, 255, 114, 0.10);
+    --color-accent-glow:  rgba(199, 255, 114, 0.22);
+
+    /* Glass */
+    --glass-bg:           rgba(255, 255, 255, 0.03);
+    --glass-border:       rgba(255, 255, 255, 0.08);
+    --glass-blur:         blur(20px) saturate(180%);
+
+    /* Radii */
+    --radius-sm:          6px;
+    --radius-md:          10px;
+    --radius-lg:          14px;
+    --radius-xl:          18px;
+    --radius-2xl:         24px;
+
+    /* Dimensions */
+    --space-sidebar:      240px;
+    --space-nav-height:   64px;
+  }
+}
+
+/* ============================================================
+   BASE RESETS & TYPOGRAPHY
+   ============================================================ */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-syne), serif, sans-serif;
+    letter-spacing: -0.025em;
+  }
+
+  .font-numbers {
+    font-family: var(--font-space-grotesk), monospace, sans-serif;
+  }
+
+  .font-mono {
+    font-family: var(--font-dm-mono), monospace;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  ::selection {
+    background: rgba(255, 255, 255, 0.2);
+    color: #F5F5F5;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(199, 255, 114, 0.85);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-elevated {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .text-gradient {
+    background: linear-gradient(180deg, #F5F5F5 0%, #A1A1A1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-accent {
+    background: linear-gradient(180deg, #FFFFFF 0%, #C7FF72 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 25px rgba(199, 255, 114, 0.18), inset 0 1px 0 rgba(199, 255, 114, 0.25);
+  }
+
+  .glass-accent {
+    background: rgba(199, 255, 114, 0.04);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(199, 255, 114, 0.15);
+  }
+
+  /* Monochrome Heatmap Tones */
+  .heatmap-0 { background: #0E0E0E; }
+  .heatmap-1 { background: #222222; }
+  .heatmap-2 { background: #444444; }
+  .heatmap-3 { background: #777777; }
+  .heatmap-4 { background: #B0B0B0; }
+  .heatmap-5 { background: #F5F5F5; }
+}
+
+/* ============================================================
+   RECHARTS MONOCHROME OVERRIDES
+   ============================================================ */
+
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.04) !important;
+}
+
+.recharts-default-tooltip {
+  background: #101010 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  color: #F5F5F5 !important;
+  font-family: var(--font-dm-mono) !important;
+  font-size: 11px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+.recharts-text {
+  fill: #6F6F6F !important;
+  font-family: var(--font-dm-mono) !important;
+  font-size: 10px !important;
+}
