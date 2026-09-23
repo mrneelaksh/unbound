@@ -2,8 +2,9 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
-if (!fs.existsSync(DATA_DIR)) {
+const isServerless = process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_FUNCTION_NAME
+const DATA_DIR = isServerless ? '/tmp' : path.join(process.cwd(), 'data')
+if (!isServerless && !fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
