@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Zap, BarChart2, Footprints, Heart, User,
-  BookOpen, Users, Compass, MessageSquare, X, ChevronUp
+  BookOpen, Users, Compass, MessageSquare, X, ChevronUp, TrendingUp
 } from 'lucide-react'
 
 const PRIMARY_ITEMS = [
@@ -18,9 +18,10 @@ const PRIMARY_ITEMS = [
 ]
 
 const MORE_ITEMS = [
+  { href: '/analytics', icon: BarChart2, label: 'Analytics' },
+  { href: '/progress', icon: TrendingUp, label: 'Progress' },
   { href: '/learn', icon: BookOpen, label: 'Learn' },
   { href: '/community', icon: Users, label: 'Community' },
-  { href: '/progress', icon: BarChart2, label: 'Progress' },
   { href: '/quests', icon: Compass, label: 'Quests' },
   { href: '/coach', icon: MessageSquare, label: 'AI Coach' },
 ]

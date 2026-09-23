@@ -45,6 +45,7 @@ export async function middleware(request: NextRequest) {
     '/urge',
     '/reset',
     '/progress',
+    '/analytics',
     '/quests',
     '/coach',
     '/profile',

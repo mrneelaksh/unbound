@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   BarChart2, TrendingUp, Award, Calendar, Shield, Activity,
@@ -98,18 +99,29 @@ export default function ProgressPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-card border border-white/10 font-mono text-xs">
-            {(['7d', '30d', '90d', 'all'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={`px-3 py-1.5 rounded-lg uppercase tracking-wider transition-colors ${
-                  range === r ? 'bg-white/15 text-white font-bold' : 'text-subtle hover:text-white'
-                }`}
-              >
-                {r.toUpperCase()}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/analytics"
+              className="px-3.5 py-1.5 rounded-xl bg-[#C7FF72]/15 text-[#C7FF72] hover:bg-[#C7FF72]/25 border border-[#C7FF72]/30 font-mono text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <BarChart2 size={13} />
+              <span>ADVANCED ANALYTICS</span>
+              <ArrowUpRight size={13} />
+            </Link>
+
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-card border border-white/10 font-mono text-xs">
+              {(['7d', '30d', '90d', 'all'] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRange(r)}
+                  className={`px-3 py-1.5 rounded-lg uppercase tracking-wider transition-colors ${
+                    range === r ? 'bg-white/15 text-white font-bold' : 'text-subtle hover:text-white'
+                  }`}
+                >
+                  {r.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

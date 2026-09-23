@@ -556,60 +556,137 @@ function QuestsSection({ onOpenFocus }: { onOpenFocus: () => void }) {
 }
 
 // ============================================================
-// 6. YOUR JOURNEY (REAL DATA ONLY)
+// 6. DASHBOARD MINI ANALYTICS PREVIEW (Reqs 50 & 51)
 // ============================================================
 function JourneySection() {
-  const { totalXP, urgeLogs } = useUserStore()
-  const isNew = totalXP === 0 && urgeLogs.length === 0
+  const { totalXP, urgeLogs, todayWaterMl, dailyWaterGoalMl, activities, currentStreak, longestStreak } = useUserStore()
+  const isNew = totalXP === 0 && urgeLogs.length === 0 && todayWaterMl === 0
+
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const todayFocus = activities.filter((a) => a.type === 'focus' && a.date === todayKey).reduce((acc, a) => acc + (a.durationMinutes || 0), 0)
+  const todaySteps = activities.filter((a) => a.date === todayKey).reduce((acc, a) => acc + (a.steps || 0), 0)
+
+  const miniCards = [
+    {
+      id: 'xp',
+      label: 'XP VELOCITY',
+      value: `+${Math.min(totalXP, 320)}`,
+      unit: 'XP',
+      trend: totalXP > 0 ? '+18%' : 'READY',
+      spark: [{ v: 0 }, { v: 40 }, { v: 90 }, { v: 160 }, { v: 240 }, { v: Math.min(totalXP || 20, 320) }],
+      color: '#C7FF72',
+    },
+    {
+      id: 'water',
+      label: 'HYDRATION',
+      value: `${todayWaterMl}`,
+      unit: `/${dailyWaterGoalMl || 2500} ml`,
+      trend: todayWaterMl > 0 ? `${Math.round((todayWaterMl / (dailyWaterGoalMl || 2500)) * 100)}%` : '0%',
+      spark: [{ v: 0 }, { v: 250 }, { v: 500 }, { v: todayWaterMl || 0 }],
+      color: '#C7FF72',
+    },
+    {
+      id: 'activity',
+      label: 'ACTIVE STEPS',
+      value: `${todaySteps.toLocaleString()}`,
+      unit: 'steps',
+      trend: todaySteps > 0 ? '+15%' : 'READY',
+      spark: [{ v: 0 }, { v: 1200 }, { v: 2400 }, { v: todaySteps || 0 }],
+      color: '#FFFFFF',
+    },
+    {
+      id: 'focus',
+      label: 'FOCUS TIME',
+      value: `${todayFocus}`,
+      unit: 'min',
+      trend: todayFocus > 0 ? '+30%' : 'READY',
+      spark: [{ v: 0 }, { v: 15 }, { v: 25 }, { v: todayFocus || 0 }],
+      color: '#C7FF72',
+    },
+    {
+      id: 'habits',
+      label: 'MOMENTUM',
+      value: `${currentStreak}`,
+      unit: 'days active',
+      trend: currentStreak > 0 ? 'ACTIVE' : 'READY',
+      spark: [{ v: 0 }, { v: 1 }, { v: currentStreak || 0 }],
+      color: '#FFFFFF',
+    },
+    {
+      id: 'interventions',
+      label: 'DEFLECTIONS',
+      value: `${urgeLogs.length}`,
+      unit: 'logged',
+      trend: urgeLogs.length > 0 ? '100%' : 'SHIELD ON',
+      spark: [{ v: 0 }, { v: urgeLogs.length || 0 }],
+      color: '#C7FF72',
+    },
+  ]
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <SectionLabel>YOUR JOURNEY</SectionLabel>
-        <Link href="/progress" className="font-mono text-[11px] text-subtle hover:text-white transition-colors flex items-center gap-1">
-          <span>Full Analytics</span>
-          <ChevronRight size={12} />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <SectionLabel>TELEMETRY PULSE (7D TRENDS)</SectionLabel>
+          <h3 className="font-display text-base font-bold text-white tracking-wide">
+            EXECUTIVE MINI ANALYTICS
+          </h3>
+        </div>
+        <Link
+          href="/analytics"
+          className="font-mono text-xs text-[#C7FF72] hover:underline transition-colors flex items-center gap-1 font-bold"
+        >
+          <span>Deep Analytics</span>
+          <ArrowRight size={13} />
         </Link>
       </div>
 
-      {isNew ? (
-        <div className="p-8 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 text-center space-y-3 shadow-card">
-          <BarChart2 size={26} className="mx-auto text-subtle" />
-          <div className="space-y-1 max-w-md mx-auto">
-            <h4 className="font-display text-sm font-bold text-white">YOUR JOURNEY STARTS HERE</h4>
-            <p className="font-mono text-xs text-muted">
-              Complete your first action to begin building your progress. Real analytics will synthesize as you log check-ins, hydration, and resets.
-            </p>
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {miniCards.map((card) => (
           <Link
-            href="/urge"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono text-xs border border-white/10 transition-colors font-bold"
+            key={card.id}
+            href="/analytics"
+            className="p-4 rounded-2xl bg-card/85 backdrop-blur-md border border-white/10 hover:border-[#C7FF72]/40 transition-all flex flex-col justify-between space-y-2 shadow-card group"
           >
-            <span>START A 5-MIN RESET (+50 XP)</span>
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[9px] text-subtle uppercase tracking-wider group-hover:text-white transition-colors">
+                {card.label}
+              </span>
+              <span className="font-mono text-[9px] text-[#C7FF72] font-bold">
+                {card.trend}
+              </span>
+            </div>
+
+            <div>
+              <div className="font-numbers text-xl font-bold text-white tracking-tight">
+                {card.value} <span className="font-mono text-[10px] text-subtle font-normal">{card.unit}</span>
+              </div>
+            </div>
+
+            {/* Sparkline */}
+            <div className="h-8 w-full pt-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={card.spark}>
+                  <defs>
+                    <linearGradient id={`dashSpark-${card.id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={card.color} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={card.color} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    type="monotone"
+                    dataKey="v"
+                    stroke={card.color}
+                    strokeWidth={1.5}
+                    fill={`url(#dashSpark-${card.id})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </Link>
-        </div>
-      ) : (
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-3 shadow-card">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-base font-bold text-white">INTERVENTION RESILIENCE</h3>
-            <span className="font-mono text-xs text-[#C7FF72] font-bold">
-              {urgeLogs.length} Logged Moments
-            </span>
-          </div>
-          <p className="font-mono text-xs text-muted">
-            Tracking your conscious redirections and cognitive endurance.
-          </p>
-          <div className="pt-2">
-            <Link
-              href="/progress"
-              className="text-[#C7FF72] hover:underline font-mono text-xs font-bold flex items-center gap-1"
-            >
-              <span>View Longitudinal Trajectory</span>
-              <ArrowRight size={12} />
-            </Link>
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   )
 }

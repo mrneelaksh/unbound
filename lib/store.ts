@@ -110,6 +110,24 @@ export interface WaterDayItem {
   percentOfGoal: number
 }
 
+export interface SleepRecord {
+  id: string
+  date: string // YYYY-MM-DD
+  durationHours: number
+  bedtime?: string
+  wakeTime?: string
+  quality?: 'deep' | 'restful' | 'interrupted'
+  timestamp: number
+}
+
+export interface HabitLogRecord {
+  id: string
+  habit: string
+  date: string // YYYY-MM-DD
+  completed: boolean
+  timestamp: number
+}
+
 // ============================================================
 // USER STORE (REAL, DYNAMIC STATE)
 // ============================================================
@@ -151,12 +169,18 @@ interface UserStore {
     fiberG: number
   }
 
+  // Sleep & Habit Slices
+  sleepLogs: SleepRecord[]
+  habitLogs: HabitLogRecord[]
+
   // Actions
   setUser: (data: Partial<UserStore>) => void
   addXP: (amount: number, reason?: string) => { newXP: number; newLevel: number; didLevelUp: boolean }
   logUrge: (record: Omit<UrgeRecord, 'id' | 'timestamp'>) => void
   logActivity: (record: Omit<ActivityRecord, 'id' | 'timestamp'>) => void
   logSetback: (record: Omit<SetbackRecord, 'id' | 'timestamp'>) => void
+  logSleep: (record: Omit<SleepRecord, 'id' | 'timestamp'>) => void
+  logHabit: (habit: string, date?: string, completed?: boolean) => void
   completeLesson: (lessonId: string, xpReward: number) => void
   completeQuest: (questId: string, xpReward: number) => void
   setPlan: (plan: PlanType) => void
@@ -207,6 +231,8 @@ const NEW_USER_DEFAULTS = {
     fatG: 0,
     fiberG: 0,
   },
+  sleepLogs: [],
+  habitLogs: [],
 }
 
 export const useUserStore = create<UserStore>()(
@@ -278,6 +304,27 @@ export const useUserStore = create<UserStore>()(
         const timestamp = Date.now()
         const newSetback: SetbackRecord = { ...record, id, timestamp }
         set((state) => ({ setbacks: [newSetback, ...state.setbacks] }))
+      },
+
+      logSleep: (record) => {
+        const id = `sleep-${Date.now()}`
+        const timestamp = Date.now()
+        const newSleep: SleepRecord = { ...record, id, timestamp }
+        get().addXP(25, 'sleep_logged')
+        set((state) => ({
+          sleepLogs: [newSleep, ...state.sleepLogs.filter((s) => s.date !== record.date)],
+        }))
+      },
+
+      logHabit: (habit, date, completed = true) => {
+        const habitDate = date || new Date().toISOString().slice(0, 10)
+        const id = `habit-${Date.now()}`
+        const timestamp = Date.now()
+        const newHabitLog: HabitLogRecord = { id, habit, date: habitDate, completed, timestamp }
+        if (completed) get().addXP(30, 'habit_completed')
+        set((state) => ({
+          habitLogs: [newHabitLog, ...state.habitLogs],
+        }))
       },
 
       completeLesson: (lessonId, xpReward) => {

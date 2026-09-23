@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Zap, BarChart2, Compass, MessageSquare, User,
   Moon, Shield, UserCheck, Settings, LogOut, Footprints, Heart,
-  BookOpen, Users
+  BookOpen, Users, TrendingUp
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -19,7 +19,8 @@ const NAV_ITEMS = [
   { href: '/urge', icon: Zap, label: 'Urge Mode' },
   { href: '/activity', icon: Footprints, label: 'Activity' },
   { href: '/wellbeing', icon: Heart, label: 'Wellbeing' },
-  { href: '/progress', icon: BarChart2, label: 'Progress' },
+  { href: '/analytics', icon: BarChart2, label: 'Analytics' },
+  { href: '/progress', icon: TrendingUp, label: 'Progress' },
   { href: '/quests', icon: Compass, label: 'Quests' },
   { href: '/coach', icon: MessageSquare, label: 'AI Coach' },
   { href: '/learn', icon: BookOpen, label: 'Learn' },
