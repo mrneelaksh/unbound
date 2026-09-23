@@ -4,10 +4,6 @@ const nextConfig: NextConfig = {
   // Strict mode for better error detection
   reactStrictMode: true,
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   // Optimize images
   images: {
     remotePatterns: [
