@@ -160,9 +160,11 @@ export default function ProgressPage() {
           <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
             <span className="font-mono text-[10px] text-subtle uppercase">INTERVENTIONS</span>
             <div className="font-numbers text-3xl font-bold text-white">
-              {urgeLogs.length || (isNew ? 0 : 43)}
+              {urgeLogs.length}
             </div>
-            <span className="font-mono text-[10px] text-muted">86% successfully deflected</span>
+            <span className="font-mono text-[10px] text-muted">
+              {urgeLogs.length > 0 ? `${Math.round((urgeLogs.filter(u => u.outcome !== 'relapse').length / urgeLogs.length) * 100)}% deflected` : 'No logs recorded'}
+            </span>
           </div>
         </div>
 
@@ -188,29 +190,39 @@ export default function ProgressPage() {
           </div>
 
           <div className="h-64 w-full pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="progressUrgesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FFFFFF" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="time" stroke="#444" tick={{ fontSize: 11, fill: '#888' }} />
-                <YAxis stroke="#444" tick={{ fontSize: 11, fill: '#888' }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#111111',
-                    borderColor: 'rgba(255,255,255,0.15)',
-                    borderRadius: '12px',
-                    fontFamily: 'monospace',
-                    fontSize: '12px',
-                  }}
-                />
-                <Area type="monotone" dataKey="urges" stroke="#FFFFFF" strokeWidth={2} fill="url(#progressUrgesGrad)" />
-                <Area type="monotone" dataKey="control" stroke="#C7FF72" strokeWidth={2} strokeDasharray="3 3" fill="none" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {urgeLogs.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                <Shield className="w-8 h-8 text-[#C7FF72]/50 mb-2" />
+                <p className="font-display text-sm font-semibold text-white">No Interventions Logged Yet</p>
+                <p className="font-mono text-xs text-muted mt-1 max-w-sm">
+                  Your urge density and resistance trajectory will map here in real time as you log check-ins.
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="progressUrgesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FFFFFF" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="time" stroke="#444" tick={{ fontSize: 11, fill: '#888' }} />
+                  <YAxis stroke="#444" tick={{ fontSize: 11, fill: '#888' }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#111111',
+                      borderColor: 'rgba(255,255,255,0.15)',
+                      borderRadius: '12px',
+                      fontFamily: 'monospace',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Area type="monotone" dataKey="urges" stroke="#FFFFFF" strokeWidth={2} fill="url(#progressUrgesGrad)" />
+                  <Area type="monotone" dataKey="control" stroke="#C7FF72" strokeWidth={2} strokeDasharray="3 3" fill="none" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -225,20 +237,28 @@ export default function ProgressPage() {
             </p>
 
             <div className="space-y-3 pt-2">
-              {TIME_OF_DAY_RISK.map((item, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between font-mono text-xs">
-                    <span className="text-white">{item.period}</span>
-                    <span className="text-muted">{item.percentage}% ({item.count} urges)</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className="h-full bg-[#C7FF72] transition-all duration-700 rounded-full"
-                      style={{ width: `${item.percentage}%`, opacity: 0.35 + (item.percentage / 100) * 0.65 }}
-                    />
-                  </div>
+              {urgeLogs.length === 0 ? (
+                <div className="py-8 text-center border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+                  <Clock className="w-6 h-6 text-subtle mx-auto mb-2 opacity-50" />
+                  <p className="font-mono text-xs text-muted">Awaiting initial check-in telemetry</p>
+                  <p className="font-mono text-[10px] text-subtle mt-0.5">Peak vulnerability periods will be plotted automatically</p>
                 </div>
-              ))}
+              ) : (
+                TIME_OF_DAY_RISK.map((item, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between font-mono text-xs">
+                      <span className="text-white">{item.period}</span>
+                      <span className="text-muted">{item.percentage}% ({item.count} urges)</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className="h-full bg-[#C7FF72] transition-all duration-700 rounded-full"
+                        style={{ width: `${item.percentage}%`, opacity: 0.35 + (item.percentage / 100) * 0.65 }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -249,7 +269,9 @@ export default function ProgressPage() {
                 LATE-NIGHT SHIELD RECOMMENDATION
               </h3>
               <p className="font-sans text-xs text-muted leading-relaxed mt-2">
-                Over 48% of all logged urges occur between 10:00 PM and 6:00 AM. Enabling UNBOUND Night Shield automatically engages a low-light screen environment, prompts mindful breathing, and primes high-priority replacement habits during this window.
+                {urgeLogs.length === 0
+                  ? 'Night Shield primes a low-light screen environment, guided slow breathing, and high-priority replacement habits between 10:30 PM and 6:30 AM to safeguard your recovery sleep cycles.'
+                  : 'Over 48% of all logged urges occur between 10:00 PM and 6:00 AM. Enabling UNBOUND Night Shield automatically engages a low-light screen environment, prompts mindful breathing, and primes high-priority replacement habits during this window.'}
               </p>
             </div>
 

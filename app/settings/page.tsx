@@ -253,14 +253,23 @@ export default function SettingsPage() {
           </button>
 
           <button
-            onClick={() => {
-              if (confirm('Deleting your account permanently removes your account and associated data according to our data-retention policy.')) {
+            onClick={async () => {
+              if (confirm('Deleting your account permanently removes your account and associated data. Are you sure?')) {
+                try {
+                  await fetch('/api/user/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmation: 'DELETE' }),
+                  })
+                } catch {}
                 reset()
-                alert('Your account data has been wiped according to our data-retention policy.')
+                try {
+                  localStorage.clear()
+                } catch {}
                 window.location.href = '/auth/login'
               }
             }}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 bg-red-950/20 hover:bg-red-950/40 text-red-300 font-mono text-xs transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 bg-red-950/20 hover:bg-red-950/40 text-red-300 font-mono text-xs transition-colors cursor-pointer"
           >
             <Trash2 size={14} />
             <span>DELETE ACCOUNT</span>

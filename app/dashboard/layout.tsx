@@ -1,33 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
-import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
 import UrgeFloatingButton from '@/components/dashboard/UrgeFloatingButton'
+import { getCurrentUser } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  if (isSupabaseConfigured()) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
-    if (!user) {
-      redirect('/auth/login')
-    }
-
-    // Check if onboarding is completed
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('id', user.id)
-      .single()
-
-    if (profile && !profile.onboarding_completed) {
-      redirect('/onboarding')
-    }
+  if (!user) {
+    redirect('/auth/login?next=/dashboard')
   }
 
   return (

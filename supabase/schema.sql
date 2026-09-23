@@ -455,3 +455,67 @@ insert into public.badges (slug, name, description, category, xp_reward) values
   ('level_5', 'Halfway There', 'Reached Level 5: Focus', 'personal_growth', 250),
   ('level_8', 'UNBOUND', 'Reached Level 8: UNBOUND', 'personal_growth', 500),
   ('level_10', 'Ascended', 'Reached Level 10: Ascend', 'personal_growth', 1000);
+
+-- ============================================================
+-- WATER TRACKING & HYDRATION MODULE
+-- ============================================================
+create table public.water_logs (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  amount_ml integer not null check (amount_ml > 0),
+  logged_at timestamptz default now() not null,
+  source text default 'quick_add', -- 'quick_add' | 'custom'
+  created_at timestamptz default now()
+);
+
+alter table public.water_logs enable row level security;
+create policy "Users can view own water logs" on public.water_logs
+  for select using (auth.uid() = user_id);
+create policy "Users can insert own water logs" on public.water_logs
+  for insert with check (auth.uid() = user_id);
+create policy "Users can delete own water logs" on public.water_logs
+  for delete using (auth.uid() = user_id);
+
+create table public.water_goals (
+  user_id uuid references public.profiles(id) on delete cascade primary key,
+  daily_goal_ml integer default 2500 check (daily_goal_ml between 500 and 10000),
+  updated_at timestamptz default now()
+);
+
+alter table public.water_goals enable row level security;
+create policy "Users can view own water goal" on public.water_goals
+  for select using (auth.uid() = user_id);
+create policy "Users can upsert own water goal" on public.water_goals
+  for all using (auth.uid() = user_id);
+
+create index idx_water_logs_user_date on public.water_logs(user_id, logged_at desc);
+
+-- ============================================================
+-- NUTRITION & DAILY FOOD LOG
+-- ============================================================
+create table public.food_logs (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
+  food_name text not null,
+  serving text,
+  calories integer,
+  protein_g numeric(6, 1) default 0,
+  carbs_g numeric(6, 1) default 0,
+  fat_g numeric(6, 1) default 0,
+  fiber_g numeric(6, 1) default 0,
+  notes text,
+  logged_at timestamptz default now() not null,
+  created_at timestamptz default now()
+);
+
+alter table public.food_logs enable row level security;
+create policy "Users can view own food logs" on public.food_logs
+  for select using (auth.uid() = user_id);
+create policy "Users can insert own food logs" on public.food_logs
+  for insert with check (auth.uid() = user_id);
+create policy "Users can delete own food logs" on public.food_logs
+  for delete using (auth.uid() = user_id);
+
+create index idx_food_logs_user_date on public.food_logs(user_id, logged_at desc);
+

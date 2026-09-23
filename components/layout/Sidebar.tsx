@@ -38,10 +38,12 @@ export default function Sidebar() {
   const { reset, totalXP, currentLevel } = useUserStore()
 
   async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' })
+    } catch {}
     reset()
     router.push('/auth/login')
+    router.refresh()
   }
 
   return (

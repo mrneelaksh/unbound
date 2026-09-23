@@ -4,9 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
-import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { isSupabaseConfigured } from '@/lib/supabase/config'
+import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, Check } from 'lucide-react'
 import { useUserStore } from '@/lib/store'
 import { Logo } from '@/components/ui/Logo'
 
@@ -37,12 +35,26 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Password strength checks
+  const hasMinLength = password.length >= 8
+  const hasNumberOrSymbol = /[\d!@#$%^&*(),.?":{}|<>]/.test(password)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
     if (!firstName.trim()) {
-      setError('Please tell us what UNBOUND should call you.')
+      setError('Please enter your first name.')
+      return
+    }
+
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
       return
     }
 
@@ -50,42 +62,51 @@ export default function SignupPage() {
       setError('Passwords do not match.')
       return
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
 
     setLoading(true)
 
-    const cleanName = firstName.trim()
-
-    if (!isSupabaseConfigured()) {
-      useUserStore.getState().setUser({
-        userId: 'demo-user',
-        displayName: cleanName,
-        email: email.trim(),
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          email: email.trim(),
+          password,
+          confirmPassword,
+        }),
       })
+
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Failed to create account. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      // Initialize fresh store strictly in true zero state
+      useUserStore.getState().reset()
+      useUserStore.getState().setUser({
+        userId: data.user.id,
+        displayName: firstName.trim(),
+        email: email.trim(),
+        totalXP: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        currentLevel: 1,
+        activities: [],
+        urgeLogs: [],
+        completedQuestIds: [],
+        unlockedBadgeIds: [],
+      })
+
       router.push('/onboarding')
-      return
-    }
-
-    const supabase = createClient()
-
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (authError) {
-      setError(authError.message)
+      router.refresh()
+    } catch {
+      setError('Network error occurred during signup. Please try again.')
       setLoading(false)
-      return
     }
-
-    router.push('/onboarding')
   }
 
   return (
@@ -104,8 +125,8 @@ export default function SignupPage() {
 
       {/* Heading */}
       <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="font-display text-display-lg text-text mb-2">Begin your journey.</h1>
-        <p className="text-muted text-sm font-sans">Understanding is the first step.</p>
+        <h1 className="font-display text-display-lg text-text mb-2">Create Account.</h1>
+        <p className="text-muted text-sm font-sans">Begin your conscious journey from Day 0.</p>
       </motion.div>
 
       {/* Form */}
@@ -113,13 +134,13 @@ export default function SignupPage() {
         {/* Name */}
         <motion.div variants={itemVariants} className="flex flex-col gap-1.5">
           <label className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
-            What should UNBOUND call you?
+            First Name
           </label>
           <input
             type="text"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="First name (e.g. Neelaksh)"
+            placeholder="e.g. Neelaksh"
             required
             autoComplete="given-name"
             className="w-full px-4 py-3 rounded-md text-sm font-sans text-text placeholder:text-subtle
@@ -169,12 +190,24 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-muted transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-muted transition-colors cursor-pointer"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
+
+          {/* Real-time strength cues */}
+          {password && (
+            <div className="flex items-center gap-3 pt-1 font-mono text-[10px]">
+              <span className={`flex items-center gap-1 ${hasMinLength ? 'text-[#C7FF72]' : 'text-subtle'}`}>
+                <Check size={10} /> 8+ chars
+              </span>
+              <span className={`flex items-center gap-1 ${hasNumberOrSymbol ? 'text-[#C7FF72]' : 'text-subtle'}`}>
+                <Check size={10} /> number/symbol
+              </span>
+            </div>
+          )}
         </motion.div>
 
         {/* Confirm Password */}
@@ -198,7 +231,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-muted transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-muted transition-colors cursor-pointer"
               aria-label={showConfirm ? 'Hide password' : 'Show password'}
             >
               {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -211,10 +244,10 @@ export default function SignupPage() {
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2.5 px-4 py-3 rounded-md bg-white/[0.04] border border-white/10"
+            className="flex items-start gap-2.5 px-4 py-3 rounded-md bg-white/[0.04] border border-red-500/30"
           >
-            <AlertCircle size={14} className="shrink-0 text-muted mt-0.5" />
-            <p className="text-sm text-muted font-sans">{error}</p>
+            <AlertCircle size={14} className="shrink-0 text-red-400 mt-0.5" />
+            <p className="text-sm text-red-300 font-sans">{error}</p>
           </motion.div>
         )}
 
@@ -223,7 +256,7 @@ export default function SignupPage() {
           variants={itemVariants}
           className="flex items-start gap-2.5 px-4 py-3 rounded-md bg-white/[0.03] border border-white/[0.06]"
         >
-          <ShieldCheck size={14} className="shrink-0 text-muted mt-0.5" />
+          <ShieldCheck size={14} className="shrink-0 text-[#C7FF72] mt-0.5" />
           <p className="text-xs text-subtle font-sans leading-relaxed">
             Your data stays private. We never sell or share your personal information.
           </p>
@@ -238,7 +271,7 @@ export default function SignupPage() {
               bg-text text-bg
               hover:bg-white
               disabled:opacity-50 disabled:cursor-not-allowed
-              transition-all duration-200
+              transition-all duration-200 cursor-pointer
               flex items-center justify-center gap-2"
           >
             {loading ? (
@@ -261,7 +294,7 @@ export default function SignupPage() {
         Already have an account?{' '}
         <Link
           href="/auth/login"
-          className="text-muted hover:text-text transition-colors underline underline-offset-2"
+          className="text-white hover:text-[#C7FF72] transition-colors underline underline-offset-2 font-medium"
         >
           Sign in
         </Link>

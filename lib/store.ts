@@ -88,6 +88,28 @@ export interface SetbackRecord {
   whatHelped: string
 }
 
+export interface FoodLogItem {
+  id: string
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  food_name: string
+  serving?: string | null
+  calories?: number | null
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  fiber_g: number
+  notes?: string | null
+  logged_at: string
+}
+
+export interface WaterDayItem {
+  date: string
+  day: string
+  amountMl: number
+  goalMet: boolean
+  percentOfGoal: number
+}
+
 // ============================================================
 // USER STORE (REAL, DYNAMIC STATE)
 // ============================================================
@@ -114,6 +136,21 @@ interface UserStore {
   setbacks: SetbackRecord[]
   completedLessonIds: string[]
 
+  // Hydration & Nutrition Slices
+  todayWaterMl: number
+  dailyWaterGoalMl: number
+  waterHistory7d: WaterDayItem[]
+  waterHistory30d: WaterDayItem[]
+  waterHistory90d: WaterDayItem[]
+  foodLogs: FoodLogItem[]
+  nutritionTotals: {
+    calories: number
+    proteinG: number
+    carbsG: number
+    fatG: number
+    fiberG: number
+  }
+
   // Actions
   setUser: (data: Partial<UserStore>) => void
   addXP: (amount: number, reason?: string) => { newXP: number; newLevel: number; didLevelUp: boolean }
@@ -125,6 +162,13 @@ interface UserStore {
   setPlan: (plan: PlanType) => void
   setSeedState: (type: 'new' | 'active') => void
   reset: () => void
+
+  // Backend Sync Actions
+  syncWithServer: () => Promise<void>
+  addWater: (amountMl: number) => Promise<void>
+  updateWaterGoal: (goalMl: number) => Promise<void>
+  logFood: (meal: any) => Promise<void>
+  deleteFood: (id: string) => Promise<void>
 }
 
 const NEW_USER_DEFAULTS = {
@@ -149,89 +193,21 @@ const NEW_USER_DEFAULTS = {
   urgeLogs: [],
   setbacks: [],
   completedLessonIds: [],
+
+  todayWaterMl: 0,
+  dailyWaterGoalMl: 2500,
+  waterHistory7d: [],
+  waterHistory30d: [],
+  waterHistory90d: [],
+  foodLogs: [],
+  nutritionTotals: {
+    calories: 0,
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 0,
+    fiberG: 0,
+  },
 }
-
-const ACTIVE_DEMO_ACTIVITIES: ActivityRecord[] = [
-  {
-    id: 'act-1',
-    type: 'run',
-    date: new Date().toISOString().split('T')[0],
-    durationMinutes: 24,
-    distanceKm: 2.84,
-    steps: 3842,
-    pace: '8:32 / km',
-    calories: 195,
-    xpEarned: 80,
-    timestamp: Date.now() - 3600000 * 4,
-  },
-  {
-    id: 'act-2',
-    type: 'walk',
-    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-    durationMinutes: 30,
-    distanceKm: 2.2,
-    steps: 3100,
-    pace: '13:38 / km',
-    calories: 130,
-    xpEarned: 20,
-    timestamp: Date.now() - 86400000,
-  },
-  {
-    id: 'act-3',
-    type: 'run',
-    date: new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0],
-    durationMinutes: 35,
-    distanceKm: 4.1,
-    steps: 5400,
-    pace: '8:32 / km',
-    calories: 280,
-    xpEarned: 80,
-    timestamp: Date.now() - 86400000 * 3,
-  },
-]
-
-const ACTIVE_DEMO_URGES: UrgeRecord[] = [
-  {
-    id: 'urg-1',
-    timestamp: Date.now() - 86400000 * 1,
-    intensity: 6,
-    trigger: 'Late night',
-    interventionType: '4-2-6 Breathing',
-    outcome: 'deflected',
-    replacementHabit: 'Chess',
-    xpEarned: 50,
-  },
-  {
-    id: 'urg-2',
-    timestamp: Date.now() - 86400000 * 2,
-    intensity: 7,
-    trigger: 'Boredom',
-    interventionType: '60s Movement',
-    outcome: 'deflected',
-    replacementHabit: 'Reading',
-    xpEarned: 50,
-  },
-  {
-    id: 'urg-3',
-    timestamp: Date.now() - 86400000 * 4,
-    intensity: 5,
-    trigger: 'Stress',
-    interventionType: '4-2-6 Breathing',
-    outcome: 'deflected',
-    replacementHabit: 'Coding',
-    xpEarned: 50,
-  },
-  {
-    id: 'urg-4',
-    timestamp: Date.now() - 86400000 * 6,
-    intensity: 8,
-    trigger: 'Late night',
-    interventionType: 'Phone-Away',
-    outcome: 'deflected',
-    replacementHabit: 'Running',
-    xpEarned: 50,
-  },
-]
 
 export const useUserStore = create<UserStore>()(
   persist(
@@ -321,31 +297,176 @@ export const useUserStore = create<UserStore>()(
 
       setPlan: (plan) => set({ plan }),
 
-
       setSeedState: (type) => {
         if (type === 'new') {
           set({
             ...NEW_USER_DEFAULTS,
-            displayName: get().displayName || 'Neelaksh',
+            displayName: get().displayName || 'Seeker',
           })
         } else {
-          // Simulated 17-day active user
           set({
-            displayName: get().displayName || 'Neelaksh',
+            displayName: get().displayName || 'Seeker',
             totalXP: 2840,
             currentLevel: 7,
             currentStreak: 17,
             longestStreak: 21,
             plan: 'pro',
-            completedQuestIds: ['q-focus-10'],
-            unlockedBadgeIds: ['b1', 'b2', 'b3', 'b4'],
-            activities: ACTIVE_DEMO_ACTIVITIES,
-            urgeLogs: ACTIVE_DEMO_URGES,
+            todayWaterMl: 1700,
+            dailyWaterGoalMl: 2500,
           })
         }
       },
 
       reset: () => set(NEW_USER_DEFAULTS),
+
+      // Server Data Sync
+      syncWithServer: async () => {
+        try {
+          // 1. Session & Profile
+          const sessionRes = await fetch('/api/auth/session')
+          if (sessionRes.ok) {
+            const { user } = await sessionRes.json()
+            if (user) {
+              set({
+                userId: user.id,
+                email: user.email,
+                displayName: user.displayName || user.firstName,
+                totalXP: user.totalXP || 0,
+                currentLevel: user.currentLevel || 1,
+                currentStreak: user.currentStreak || 0,
+                longestStreak: user.longestStreak || 0,
+                dailyWaterGoalMl: user.dailyWaterGoalMl || 2500,
+              })
+            }
+          }
+
+          // 2. Hydration
+          const waterRes = await fetch('/api/water')
+          if (waterRes.ok) {
+            const data = await waterRes.json()
+            set({
+              todayWaterMl: data.todayTotalMl || 0,
+              dailyWaterGoalMl: data.dailyGoalMl || 2500,
+              waterHistory7d: data.history7d || [],
+              waterHistory30d: data.history30d || [],
+              waterHistory90d: data.history90d || [],
+            })
+          }
+
+          // 3. Nutrition
+          const nutRes = await fetch('/api/nutrition')
+          if (nutRes.ok) {
+            const data = await nutRes.json()
+            set({
+              foodLogs: data.logs || [],
+              nutritionTotals: data.totals || {
+                calories: 0,
+                proteinG: 0,
+                carbsG: 0,
+                fatG: 0,
+                fiberG: 0,
+              },
+            })
+          }
+        } catch {
+          // Graceful fallback to offline cached Zustand state
+        }
+      },
+
+      addWater: async (amountMl: number) => {
+        const prevTotal = get().todayWaterMl
+        const newTotal = prevTotal + amountMl
+        set({ todayWaterMl: newTotal })
+        get().addXP(5, 'water_logged')
+
+        try {
+          const res = await fetch('/api/water', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amountMl }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.todayTotalMl !== undefined) {
+              set({ todayWaterMl: data.todayTotalMl })
+            }
+            // Refresh history
+            const refreshRes = await fetch('/api/water')
+            if (refreshRes.ok) {
+              const hist = await refreshRes.json()
+              set({
+                waterHistory7d: hist.history7d || [],
+                waterHistory30d: hist.history30d || [],
+                waterHistory90d: hist.history90d || [],
+              })
+            }
+          }
+        } catch {
+          // Kept in optimistic client state
+        }
+      },
+
+      updateWaterGoal: async (goalMl: number) => {
+        set({ dailyWaterGoalMl: goalMl })
+        try {
+          await fetch('/api/water/goal', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dailyGoalMl: goalMl }),
+          })
+        } catch {}
+      },
+
+      logFood: async (mealData: any) => {
+        try {
+          const res = await fetch('/api/nutrition', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mealData),
+          })
+          if (res.ok) {
+            get().addXP(10, 'conscious_meal')
+            const nutRes = await fetch('/api/nutrition')
+            if (nutRes.ok) {
+              const data = await nutRes.json()
+              set({
+                foodLogs: data.logs || [],
+                nutritionTotals: data.totals || {
+                  calories: 0,
+                  proteinG: 0,
+                  carbsG: 0,
+                  fatG: 0,
+                  fiberG: 0,
+                },
+              })
+            }
+          }
+        } catch {}
+      },
+
+      deleteFood: async (id: string) => {
+        try {
+          const res = await fetch(`/api/nutrition?id=${id}`, {
+            method: 'DELETE',
+          })
+          if (res.ok) {
+            const nutRes = await fetch('/api/nutrition')
+            if (nutRes.ok) {
+              const data = await nutRes.json()
+              set({
+                foodLogs: data.logs || [],
+                nutritionTotals: data.totals || {
+                  calories: 0,
+                  proteinG: 0,
+                  carbsG: 0,
+                  fatG: 0,
+                  fiberG: 0,
+                },
+              })
+            }
+          }
+        } catch {}
+      },
     }),
     {
       name: 'unbound-user',

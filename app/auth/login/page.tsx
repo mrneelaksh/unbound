@@ -1,12 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { useUserStore } from '@/lib/store'
 import { Logo } from '@/components/ui/Logo'
 
@@ -26,8 +24,11 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextUrl = searchParams.get('next') || '/dashboard'
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -39,41 +40,40 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    if (!isSupabaseConfigured()) {
-      useUserStore.getState().setUser({ userId: 'demo-user', displayName: email ? email.split('@')[0] : 'Demo User' })
-      router.push('/dashboard')
-      return
-    }
+    try {
+      const res = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    const supabase = createClient()
+      const data = await res.json()
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-      return
-    }
-
-    // Check if onboarding has been completed
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_completed')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.onboarding_completed) {
-        router.push('/dashboard')
-      } else {
-        router.push('/onboarding')
+      if (!res.ok || !data.success) {
+        setError(data.error || 'No account found with these details.')
+        setLoading(false)
+        return
       }
-    } else {
-      router.push('/dashboard')
+
+      // Initialize store with real user data returned from authentication
+      if (data.user) {
+        useUserStore.getState().setUser({
+          userId: data.user.id,
+          displayName: data.user.displayName || data.user.firstName || 'Seeker',
+          email: data.user.email,
+          totalXP: data.user.totalXP || 0,
+          currentStreak: data.user.currentStreak || 0,
+        })
+      }
+
+      // Sync hydration & store data
+      await useUserStore.getState().syncWithServer()
+
+      router.push(nextUrl)
+      router.refresh()
+    } catch {
+      setError('Unable to connect to authentication server. Please try again.')
+      setLoading(false)
     }
   }
 
@@ -94,7 +94,7 @@ export default function LoginPage() {
       {/* Heading */}
       <motion.div variants={itemVariants} className="mb-8">
         <h1 className="font-display text-display-lg text-text mb-2">Welcome back.</h1>
-        <p className="text-muted text-sm font-sans">Continue your journey.</p>
+        <p className="text-muted text-sm font-sans">Sign in to continue your conscious journey.</p>
       </motion.div>
 
       {/* Form */}
@@ -120,9 +120,17 @@ export default function LoginPage() {
 
         {/* Password */}
         <motion.div variants={itemVariants} className="flex flex-col gap-1.5">
-          <label className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
+              Password
+            </label>
+            <Link
+              href="/auth/forgot-password"
+              className="font-mono text-[10px] text-subtle hover:text-[#C7FF72] transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -139,7 +147,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-muted transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-muted transition-colors cursor-pointer"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -152,10 +160,10 @@ export default function LoginPage() {
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2.5 px-4 py-3 rounded-md bg-white/[0.04] border border-white/10"
+            className="flex items-start gap-2.5 px-4 py-3 rounded-md bg-white/[0.04] border border-red-500/30"
           >
-            <AlertCircle size={14} className="shrink-0 text-muted mt-0.5" />
-            <p className="text-sm text-muted font-sans">{error}</p>
+            <AlertCircle size={14} className="shrink-0 text-red-400 mt-0.5" />
+            <p className="text-sm text-red-300 font-sans">{error}</p>
           </motion.div>
         )}
 
@@ -168,7 +176,7 @@ export default function LoginPage() {
               bg-text text-bg
               hover:bg-white
               disabled:opacity-50 disabled:cursor-not-allowed
-              transition-all duration-200
+              transition-all duration-200 cursor-pointer
               flex items-center justify-center gap-2"
           >
             {loading ? (
@@ -191,11 +199,26 @@ export default function LoginPage() {
         Don&apos;t have an account?{' '}
         <Link
           href="/auth/signup"
-          className="text-muted hover:text-text transition-colors underline underline-offset-2"
+          className="text-white hover:text-[#C7FF72] transition-colors underline underline-offset-2 font-medium"
         >
-          Start your journey
+          Create account
         </Link>
       </motion.p>
     </motion.div>
   )
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full max-w-[420px] mx-auto px-6 py-12 flex justify-center items-center">
+          <Loader2 className="animate-spin text-[#C7FF72]" size={28} />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  )
+}
+

@@ -130,16 +130,24 @@ export default function ProfilePage() {
     reader.readAsDataURL(file)
   }
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+    const cleanName = editName.trim() || 'Seeker'
     setUser({
-      displayName: editName.trim() || 'Seeker',
+      displayName: cleanName,
       avatarUrl: editAvatarPreview,
     })
+    try {
+      await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: cleanName, avatarUrl: editAvatarPreview }),
+      })
+    } catch {}
     setShowEditProfile(false)
   }
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword !== confirmPassword) {
       alert('New passwords do not match.')
@@ -149,28 +157,55 @@ export default function ProfilePage() {
       alert('Password must be at least 8 characters long.')
       return
     }
-    setPasswordSuccess(true)
-    setTimeout(() => {
-      setPasswordSuccess(false)
-      setShowChangePassword(false)
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    }, 1500)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Failed to update password.')
+        return
+      }
+      setPasswordSuccess(true)
+      setTimeout(() => {
+        setPasswordSuccess(false)
+        setShowChangePassword(false)
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      }, 1500)
+    } catch {
+      alert('Network error updating password.')
+    }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowLogoutConfirm(false)
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' })
+    } catch {}
+    reset()
     router.push('/auth/login')
+    router.refresh()
   }
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (deleteConfirmationText.trim().toUpperCase() !== 'DELETE') return
+    try {
+      await fetch('/api/user/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: 'DELETE' }),
+      })
+    } catch {}
     reset()
     try {
       localStorage.clear()
     } catch {}
-    router.push('/')
+    router.push('/auth/login')
+    router.refresh()
   }
 
   const handleAddGoal = (e: React.FormEvent) => {

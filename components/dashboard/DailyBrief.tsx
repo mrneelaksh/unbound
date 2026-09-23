@@ -4,13 +4,20 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-  Sun, Moon, CloudSun, Shield, AlertTriangle, ArrowRight,
-  Sparkles, CheckCircle2, Clock
+  Sun, Moon, CloudSun, ArrowRight, Sparkles, Droplets, Footprints, Target
 } from 'lucide-react'
 import { useUserStore } from '@/lib/store'
 
 export function DailyBrief({ onOpenCheckin }: { onOpenCheckin: () => void }) {
-  const { currentStreak, totalXP, plan } = useUserStore()
+  const {
+    currentStreak,
+    totalXP,
+    todayWaterMl,
+    dailyWaterGoalMl,
+    activities,
+    completedQuestIds,
+  } = useUserStore()
+
   const isNew = totalXP === 0 && currentStreak === 0
 
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening'>('morning')
@@ -21,6 +28,15 @@ export function DailyBrief({ onOpenCheckin }: { onOpenCheckin: () => void }) {
     else if (hour < 18) setTimeOfDay('afternoon')
     else setTimeOfDay('evening')
   }, [])
+
+  // Calculate real daily metrics
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayActivities = activities.filter((a) => a.date === todayStr)
+  const todaySteps = todayActivities.reduce((acc, a) => acc + a.steps, 0)
+
+  const nextQuestTitle = completedQuestIds.includes('q-focus-10')
+    ? '5-Minute Mindful Walk'
+    : '10-Minute Deep Focus Sprint'
 
   const briefContent = {
     morning: {
@@ -52,7 +68,7 @@ export function DailyBrief({ onOpenCheckin }: { onOpenCheckin: () => void }) {
   const Icon = briefContent.icon
 
   return (
-    <div className="p-6 rounded-3xl bg-card/85 backdrop-blur-md border border-white/10 shadow-card relative overflow-hidden space-y-4">
+    <div className="p-6 rounded-3xl bg-card/85 backdrop-blur-md border border-white/10 shadow-card relative overflow-hidden space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
@@ -93,6 +109,41 @@ export function DailyBrief({ onOpenCheckin }: { onOpenCheckin: () => void }) {
         {briefContent.desc}
       </p>
 
+      {/* Section 46: Real Today's Brief Telemetry Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-white/5 font-mono text-xs">
+        {/* Hydration */}
+        <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2.5">
+          <Droplets size={14} className="text-[#C7FF72] shrink-0" />
+          <div className="truncate">
+            <span className="text-[10px] text-subtle block uppercase">HYDRATION</span>
+            <span className="text-white font-bold">
+              {todayWaterMl > 0 ? `${todayWaterMl.toLocaleString()} ml` : '0 ml'}
+              <span className="text-subtle font-normal"> / {dailyWaterGoalMl.toLocaleString()} ml</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Activity */}
+        <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2.5">
+          <Footprints size={14} className="text-[#C7FF72] shrink-0" />
+          <div className="truncate">
+            <span className="text-[10px] text-subtle block uppercase">ACTIVITY</span>
+            <span className="text-white font-bold">
+              {todaySteps > 0 ? `${todaySteps.toLocaleString()} steps` : '0 steps (Ready)'}
+            </span>
+          </div>
+        </div>
+
+        {/* Next Quest */}
+        <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-2.5">
+          <Target size={14} className="text-[#C7FF72] shrink-0" />
+          <div className="truncate">
+            <span className="text-[10px] text-subtle block uppercase">NEXT QUEST</span>
+            <span className="text-white font-bold truncate block">{nextQuestTitle}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
         <div className="flex items-center gap-2 text-subtle">
           <span className="w-1.5 h-1.5 rounded-full bg-[#C7FF72]" />
@@ -103,7 +154,7 @@ export function DailyBrief({ onOpenCheckin }: { onOpenCheckin: () => void }) {
           href={timeOfDay === 'evening' ? '/night-shield' : '/wellbeing'}
           className="text-white hover:text-[#C7FF72] transition-colors flex items-center gap-1 font-semibold"
         >
-          <span>{timeOfDay === 'evening' ? 'Open Night Shield' : 'View Biological Map'}</span>
+          <span>{timeOfDay === 'evening' ? 'Open Night Shield' : 'View Wellbeing & Hydration'}</span>
           <ArrowRight size={12} />
         </Link>
       </div>

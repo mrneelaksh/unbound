@@ -1,16 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
-import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { redirect } from 'next/navigation'
 import LandingPage from '@/components/landing/LandingPage'
+import { getCurrentUser } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export default async function RootPage() {
-  if (isSupabaseConfigured()) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
-    if (user) {
-      redirect('/dashboard')
-    }
+  if (user) {
+    redirect('/dashboard')
   }
 
   return <LandingPage />

@@ -11,7 +11,8 @@ import {
   Zap, Target, Moon, BarChart2, Globe, TrendingUp,
   CheckCircle2, Circle, ChevronRight, Lock, Footprints,
   Clock, Dumbbell, BookOpen, Terminal, Sparkles, Award, ArrowUpRight,
-  Heart, ArrowRight, Compass, Shield, Calendar, Hourglass, Play
+  Heart, ArrowRight, Compass, Shield, Calendar, Hourglass, Play,
+  Droplets, Apple, Plus
 } from 'lucide-react'
 import { useUserStore } from '@/lib/store'
 import { getXPProgress, computeTopTrigger, computeBestReplacement } from '@/lib/core'
@@ -24,18 +25,6 @@ import { ProgressConstellation } from '@/components/ui/ProgressConstellation'
 import { Logo } from '@/components/ui/Logo'
 
 const EASE = [0.16, 1, 0.3, 1] as const
-
-// Mock historical data only used when in simulated active state
-const DEMO_8WEEK_JOURNEY = [
-  { week: 'W1', urges: 14, resistance: 3.2 },
-  { week: 'W2', urges: 12, resistance: 4.1 },
-  { week: 'W3', urges: 11, resistance: 5.0 },
-  { week: 'W4', urges: 9,  resistance: 6.2 },
-  { week: 'W5', urges: 8,  resistance: 7.0 },
-  { week: 'W6', urges: 6,  resistance: 7.8 },
-  { week: 'W7', urges: 5,  resistance: 8.4 },
-  { week: 'W8', urges: 4,  resistance: 9.0 },
-]
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -74,7 +63,6 @@ function ComebackBanner() {
   const { totalXP, currentStreak, addXP, setUser } = useUserStore()
   const [claimed, setClaimed] = useState(false)
 
-  // Show only if user has previous XP (returning user) but currentStreak is 0
   if (totalXP === 0 || currentStreak > 0 || claimed) return null
 
   const handleClaim = () => {
@@ -214,13 +202,13 @@ function RecoveryHero({ onOpenLevelUp }: { onOpenLevelUp: () => void }) {
 }
 
 // ============================================================
-// YOUR NEXT STEP (Singular Next Best Action Card)
+// 2. YOUR NEXT STEP (Singular Next Best Action Card)
 // ============================================================
 function NextBestAction({ onOpenFocus }: { onOpenFocus: () => void }) {
-  const { totalXP, currentStreak, replacementHabits } = useUserStore()
+  const { totalXP, currentStreak, replacementHabits, todayWaterMl, addWater } = useUserStore()
   const isNew = totalXP === 0 && currentStreak === 0
 
-  if (isNew) {
+  if (isNew && todayWaterMl === 0) {
     return (
       <div className="p-6 md:p-7 rounded-3xl bg-gradient-to-r from-card/95 via-[#C7FF72]/[0.08] to-card/95 border border-[#C7FF72]/30 shadow-card space-y-4">
         <div className="flex items-center justify-between">
@@ -228,34 +216,35 @@ function NextBestAction({ onOpenFocus }: { onOpenFocus: () => void }) {
             <span className="font-mono text-[9px] px-2.5 py-0.5 rounded-full bg-[#C7FF72] text-[#050505] uppercase font-bold tracking-wider">
               YOUR NEXT STEP
             </span>
-            <span className="font-mono text-xs text-subtle">· First Milestone</span>
+            <span className="font-mono text-xs text-subtle">· First Action</span>
           </div>
-          <span className="font-mono text-xs font-bold text-[#C7FF72]">+40 RECOVERY XP</span>
+          <span className="font-mono text-xs font-bold text-[#C7FF72]">+5 RECOVERY XP</span>
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="font-display text-xl font-bold text-white">
-              10-MINUTE DEEP FOCUS SPRINT
+              LOG YOUR FIRST GLASS OF WATER
             </h3>
             <p className="font-sans text-xs text-muted max-w-xl leading-relaxed">
-              Step away from screen distractions. Set a focused 10-minute timer for reading, journaling, or quiet presence to log your very first conscious baseline.
+              Hydration primes neurochemical balance and clears initial fatigue. Log 250ml of water right now to establish your conscious baseline.
             </p>
           </div>
 
-          <button
-            onClick={onOpenFocus}
-            className="px-6 py-3 rounded-2xl bg-[#C7FF72] text-[#050505] font-mono text-xs font-bold hover:bg-[#D5FFA0] transition-all flex items-center justify-center gap-2 shrink-0 shadow-[0_0_20px_rgba(199,255,114,0.3)] cursor-pointer"
-          >
-            <Clock size={16} />
-            <span>START 10-MIN FOCUS</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => addWater(250)}
+              className="px-6 py-3 rounded-2xl bg-[#C7FF72] text-[#050505] font-mono text-xs font-bold hover:bg-[#D5FFA0] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(199,255,114,0.3)] cursor-pointer"
+            >
+              <Droplets size={16} />
+              <span>LOG +250 ML WATER</span>
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
-  const primaryHabit = replacementHabits[0] || 'Chess / 15m Walk'
   return (
     <div className="p-6 md:p-7 rounded-3xl bg-gradient-to-r from-card/95 via-[#C7FF72]/[0.08] to-card/95 border border-[#C7FF72]/30 shadow-card space-y-4">
       <div className="flex items-center justify-between">
@@ -271,10 +260,10 @@ function NextBestAction({ onOpenFocus }: { onOpenFocus: () => void }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h3 className="font-display text-xl font-bold text-white">
-            PRACTICE REPLACEMENT PROTOCOL: {primaryHabit.toUpperCase()}
+            10-MINUTE DEEP FOCUS SPRINT
           </h3>
           <p className="font-sans text-xs text-muted max-w-xl leading-relaxed">
-            Engage your prefrontal cortex with a structured task before the late-night vulnerability window begins. Run a 15 or 25-minute distraction-free focus sprint.
+            Engage your prefrontal cortex with a structured task. Run a 10 or 15-minute distraction-free focus sprint before cognitive fatigue sets in.
           </p>
         </div>
 
@@ -291,17 +280,46 @@ function NextBestAction({ onOpenFocus }: { onOpenFocus: () => void }) {
 }
 
 // ============================================================
-// 2. TODAY'S METRICS SECTION
+// 3. TODAY'S METRICS SECTION (REAL DATA)
 // ============================================================
 function TodayMetrics({ onOpenFocus }: { onOpenFocus: () => void }) {
-  const { totalXP, activities } = useUserStore()
+  const { activities, completedQuestIds, currentStreak, totalXP } = useUserStore()
   const isNewUser = totalXP === 0 && activities.length === 0
 
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayActivities = activities.filter((a) => a.date === todayStr)
+  const focusMins = todayActivities
+    .filter((a) => a.type === 'focus')
+    .reduce((acc, a) => acc + a.durationMinutes, 0)
+  const activityMins = todayActivities
+    .filter((a) => a.type === 'walk' || a.type === 'run')
+    .reduce((acc, a) => acc + a.durationMinutes, 0)
+
+  const consistencyLabel = currentStreak > 0
+    ? (currentStreak >= 7 ? '100%' : `${Math.round((currentStreak / 7) * 100)}%`)
+    : 'Start today'
+
   const todayMetrics = [
-    { label: 'FOCUS', value: isNewUser ? 'Ready' : '25 MIN', desc: isNewUser ? 'Ready for sprint' : 'Deep work sprint' },
-    { label: 'HABITS', value: isNewUser ? '0 / 3' : '2 / 3', desc: isNewUser ? 'No habits logged' : 'Replacement active' },
-    { label: 'CONSISTENCY', value: isNewUser ? 'Start today' : '84%', desc: isNewUser ? 'First check-in' : 'Momentum building' },
-    { label: 'ACTIVITY', value: isNewUser ? '0 MIN' : '24 MIN', desc: isNewUser ? 'Walk / run ready' : 'Cardiovascular reset' },
+    {
+      label: 'FOCUS',
+      value: focusMins > 0 ? `${focusMins} MIN` : 'Ready',
+      desc: focusMins > 0 ? 'Deep work completed' : 'Ready for sprint',
+    },
+    {
+      label: 'QUESTS',
+      value: `${completedQuestIds.length} done`,
+      desc: completedQuestIds.length > 0 ? 'Conscious action taken' : 'Start daily quest',
+    },
+    {
+      label: 'CONSISTENCY',
+      value: consistencyLabel,
+      desc: currentStreak > 0 ? `${currentStreak} day momentum` : 'First check-in',
+    },
+    {
+      label: 'ACTIVITY',
+      value: activityMins > 0 ? `${activityMins} MIN` : '0 MIN',
+      desc: activityMins > 0 ? 'Cardiovascular reset' : 'Walk / run ready',
+    },
   ]
 
   return (
@@ -334,68 +352,176 @@ function TodayMetrics({ onOpenFocus }: { onOpenFocus: () => void }) {
 }
 
 // ============================================================
-// 3. TODAY'S QUESTS (STARTER VS DAILY)
+// 4. TODAY'S WELLBEING PREVIEW (WATER + NUTRITION + MOVEMENT)
+// ============================================================
+function TodayWellbeingPreview() {
+  const { todayWaterMl, dailyWaterGoalMl, foodLogs, addWater } = useUserStore()
+  const waterPercent = dailyWaterGoalMl > 0 ? Math.min(100, Math.round((todayWaterMl / dailyWaterGoalMl) * 100)) : 0
+  const remainingMl = Math.max(0, dailyWaterGoalMl - todayWaterMl)
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <SectionLabel>TODAY&apos;S WELLBEING</SectionLabel>
+        <Link
+          href="/wellbeing"
+          className="font-mono text-[11px] text-subtle hover:text-white transition-colors flex items-center gap-1"
+        >
+          <span>Full Biological Map</span>
+          <ChevronRight size={12} />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Hydration Hero Mini-Card */}
+        <div className="p-6 rounded-3xl bg-card/85 backdrop-blur-md border border-white/10 shadow-card flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#C7FF72]/15 text-[#C7FF72] flex items-center justify-center">
+                <Droplets size={16} />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] text-subtle uppercase tracking-wider">HYDRATION</span>
+                <h4 className="font-display text-sm font-bold text-white">TODAY&apos;S WATER</h4>
+              </div>
+            </div>
+
+            <span className="font-mono text-xs font-bold text-[#C7FF72]">
+              {waterPercent}% OF GOAL
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <div className="font-numbers text-3xl font-bold text-white">
+                {todayWaterMl.toLocaleString()} <span className="font-mono text-xs text-subtle font-normal">/ {dailyWaterGoalMl.toLocaleString()} ml</span>
+              </div>
+              <span className="font-mono text-[10px] text-muted">
+                {todayWaterMl >= dailyWaterGoalMl ? 'Goal reached!' : `${remainingMl.toLocaleString()} ml remaining`}
+              </span>
+            </div>
+
+            {/* Mini Progress Bar */}
+            <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+              <motion.div
+                className="h-full bg-[#C7FF72] rounded-full shadow-[0_0_8px_rgba(199,255,114,0.4)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${waterPercent}%` }}
+                transition={{ duration: 1, ease: EASE }}
+              />
+            </div>
+          </div>
+
+          {/* Quick-add buttons */}
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2 font-mono text-xs">
+            <span className="text-[10px] text-subtle">Quick Add:</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => addWater(250)}
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#C7FF72]/20 hover:text-[#C7FF72] border border-white/10 text-white transition-colors cursor-pointer"
+              >
+                +250ml
+              </button>
+              <button
+                onClick={() => addWater(500)}
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#C7FF72]/20 hover:text-[#C7FF72] border border-white/10 text-white transition-colors cursor-pointer"
+              >
+                +500ml
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Nutrition Mini-Card */}
+        <div className="p-6 rounded-3xl bg-card/85 backdrop-blur-md border border-white/10 shadow-card flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#C7FF72]/15 text-[#C7FF72] flex items-center justify-center">
+                <Apple size={16} />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] text-subtle uppercase tracking-wider">NUTRITION</span>
+                <h4 className="font-display text-sm font-bold text-white">CONSCIOUS NOURISHMENT</h4>
+              </div>
+            </div>
+
+            <span className="font-mono text-[9px] px-2 py-0.5 rounded-full bg-white/5 text-subtle border border-white/10 uppercase">
+              LOGGED
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="font-numbers text-3xl font-bold text-white">
+              {foodLogs.length > 0 ? `${foodLogs.length} MEALS` : 'NO DATA YET'}
+            </div>
+            <p className="font-mono text-xs text-muted">
+              {foodLogs.length > 0
+                ? `${foodLogs.map((l) => l.food_name).slice(0, 2).join(', ')}${foodLogs.length > 2 ? '…' : ''}`
+                : 'Start tracking whole foods to balance cognitive energy.'}
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-xs">
+            <Link
+              href="/wellbeing"
+              className="text-[#C7FF72] hover:underline flex items-center gap-1 font-bold"
+            >
+              <span>{foodLogs.length > 0 ? 'View Nutrition Breakdown' : 'Log your first meal'}</span>
+              <ArrowRight size={11} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 5. TODAY'S QUESTS
 // ============================================================
 function QuestsSection({ onOpenFocus }: { onOpenFocus: () => void }) {
   const { completedQuestIds, completeQuest, totalXP } = useUserStore()
   const isNewUser = totalXP === 0
 
-  const starterQuests = [
-    { id: 'starter-1', title: 'Start your first 5-min reset', xp: 50, duration: 5, icon: Zap, href: '/urge' },
-    { id: 'starter-2', title: 'Create your first replacement habit', xp: 30, duration: 2, icon: Target, href: '/quests' },
-    { id: 'starter-3', title: 'Complete a 10-minute focus sprint', xp: 40, duration: 10, icon: Terminal, action: 'focus' },
-  ]
-
-  const activeQuests = [
+  const quests = [
     { id: 'q-focus-10', title: '10-Minute Deep Focus Sprint', xp: 40, duration: 10, icon: Terminal, action: 'focus' },
-    { id: 'q-habit-rep', title: 'Practice Replacement Habit', xp: 30, duration: 15, icon: Target, href: '/quests' },
-    { id: 'q-activity-move', title: 'Physical Movement (Walk / Run)', xp: 20, duration: 15, icon: Footprints, href: '/activity' },
-    { id: 'q-night-shield', title: 'Night Shield Protocol Verification', xp: 25, duration: 2, icon: Moon, href: '/night-shield' },
+    { id: 'starter-1', title: '5-Minute Active Reset', xp: 50, duration: 5, icon: Zap, href: '/urge' },
+    { id: 'starter-2', title: 'Hydration Target: 2,500ml', xp: 30, duration: 1, icon: Droplets, href: '/wellbeing' },
   ]
-
-  const questsToDisplay = isNewUser ? starterQuests : activeQuests
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <SectionLabel>{isNewUser ? "TODAY'S FIRST STEPS" : "TODAY'S QUESTS"}</SectionLabel>
+        <SectionLabel>TODAY&apos;S MISSIONS</SectionLabel>
         <Link href="/quests" className="font-mono text-[11px] text-subtle hover:text-white transition-colors flex items-center gap-1">
           <span>All Quests</span>
           <ChevronRight size={12} />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {questsToDisplay.map((q) => {
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {quests.map((q) => {
           const isDone = completedQuestIds.includes(q.id)
           const Icon = q.icon
+
           return (
             <div
               key={q.id}
-              className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 backdrop-blur-md ${
+              className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-card ${
                 isDone
-                  ? 'bg-white/[0.02] border-white/5 opacity-60'
-                  : 'bg-card/80 border-white/10 hover:border-white/20'
+                  ? 'bg-card/40 border-white/5 opacity-70'
+                  : 'bg-card/80 backdrop-blur-md border-white/10 hover:border-white/20'
               }`}
             >
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => completeQuest(q.id, q.xp)}
-                  disabled={isDone}
-                  className="text-white hover:opacity-80 transition-opacity cursor-pointer"
-                  aria-label={isDone ? 'Quest completed' : 'Mark quest completed'}
+                  onClick={() => !isDone && completeQuest(q.id, q.xp)}
+                  className="p-1 rounded-lg text-subtle hover:text-[#C7FF72] transition-colors cursor-pointer"
                 >
-                  {isDone ? (
-                    <CheckCircle2 size={20} className="text-[#C7FF72]" />
-                  ) : (
-                    <Circle size={20} className="text-subtle hover:text-white" />
-                  )}
+                  {isDone ? <CheckCircle2 size={18} className="text-[#C7FF72]" /> : <Circle size={18} />}
                 </button>
-                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white shrink-0">
-                  <Icon size={16} />
-                </div>
                 <div>
-                  <h4 className={`font-sans text-xs font-semibold ${isDone ? 'line-through text-subtle' : 'text-white'}`}>
+                  <h4 className={`font-display text-xs font-bold ${isDone ? 'line-through text-subtle' : 'text-white'}`}>
                     {q.title}
                   </h4>
                   <span className="font-mono text-[10px] text-muted">
@@ -430,73 +556,11 @@ function QuestsSection({ onOpenFocus }: { onOpenFocus: () => void }) {
 }
 
 // ============================================================
-// 4. PERSONAL INSIGHTS
-// ============================================================
-function PersonalInsights() {
-  const { urgeLogs, plan } = useUserStore()
-  const isNew = urgeLogs.length < 2
-  const topTrigger = computeTopTrigger(urgeLogs) || 'Late night'
-  const bestHabit = computeBestReplacement(urgeLogs) || 'Chess'
-  const canSeeInsights = hasFeature('advanced_insights', plan)
-
-  return (
-    <div>
-      <SectionLabel>PERSONAL INSIGHTS</SectionLabel>
-
-      {isNew ? (
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 text-center space-y-1 shadow-card">
-          <h4 className="font-display text-sm font-bold text-white uppercase tracking-wider">NO DATA YET</h4>
-          <p className="font-mono text-xs text-muted max-w-md mx-auto">
-            Complete a few actions to unlock your personal insights. Triggers and habit correlations will synthesize automatically from real logs.
-          </p>
-        </div>
-      ) : !canSeeInsights ? (
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 flex items-center justify-between shadow-card">
-          <div>
-            <h4 className="font-display text-sm font-bold text-white">ADVANCED PERSONAL INSIGHTS</h4>
-            <p className="font-mono text-xs text-muted">
-              See deeper trends across your habits, interventions and long-term progress.
-            </p>
-          </div>
-          <Link
-            href="/pricing"
-            className="px-3.5 py-1.5 rounded-xl bg-[#C7FF72] text-[#050505] font-mono text-xs font-bold hover:bg-[#D5FFA0] transition-colors"
-          >
-            VIEW PRO
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
-            <span className="font-mono text-[10px] text-subtle uppercase">STRONGEST REPORTED TRIGGER</span>
-            <div className="font-display text-lg font-bold text-white capitalize">{topTrigger}</div>
-            <p className="font-mono text-[10px] text-muted">Peak temporal vulnerability window</p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
-            <span className="font-mono text-[10px] text-subtle uppercase">BEST REPLACEMENT HABIT</span>
-            <div className="font-display text-lg font-bold text-white capitalize">{bestHabit}</div>
-            <p className="font-mono text-[10px] text-muted">Highest success diversion protocol</p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
-            <span className="font-mono text-[10px] text-subtle uppercase">HIGH-RISK WINDOW</span>
-            <div className="font-display text-lg font-bold text-white">10 PM – 12 AM</div>
-            <p className="font-mono text-[10px] text-muted">Night Shield armed automatically</p>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================================
-// 5. YOUR JOURNEY (GROWTH GRAPH & CONTROL GAUGE)
+// 6. YOUR JOURNEY (REAL DATA ONLY)
 // ============================================================
 function JourneySection() {
-  const { totalXP, urgeLogs, plan } = useUserStore()
+  const { totalXP, urgeLogs } = useUserStore()
   const isNew = totalXP === 0 && urgeLogs.length === 0
-  const canSeeAdvanced = hasFeature('advanced_analytics', plan)
 
   return (
     <div>
@@ -514,7 +578,7 @@ function JourneySection() {
           <div className="space-y-1 max-w-md mx-auto">
             <h4 className="font-display text-sm font-bold text-white">YOUR JOURNEY STARTS HERE</h4>
             <p className="font-mono text-xs text-muted">
-              Complete your first action to begin building your progress. Real data builds as you log urges and check-ins.
+              Complete your first action to begin building your progress. Real analytics will synthesize as you log check-ins, hydration, and resets.
             </p>
           </div>
           <Link
@@ -524,361 +588,28 @@ function JourneySection() {
             <span>START A 5-MIN RESET (+50 XP)</span>
           </Link>
         </div>
-      ) : !canSeeAdvanced ? (
-        /* Free Plan locked preview */
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-4 relative overflow-hidden shadow-card">
+      ) : (
+        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-3 shadow-card">
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-display text-base font-bold text-white">8-WEEK TRANSFORMATION TIMELINE</h3>
-              <p className="font-mono text-xs text-muted">Included in Pro</p>
-            </div>
-            <span className="font-mono text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white border border-white/10">
-              PRO
+            <h3 className="font-display text-base font-bold text-white">INTERVENTION RESILIENCE</h3>
+            <span className="font-mono text-xs text-[#C7FF72] font-bold">
+              {urgeLogs.length} Logged Moments
             </span>
           </div>
-
-          <p className="font-sans text-xs text-muted leading-relaxed">
-            Free accounts include 7-day basic summaries. Pro unlocks the 8-week dual urge-resistance curve, temporal risk heatmaps, and longitudinal impulse capacity modeling.
+          <p className="font-mono text-xs text-muted">
+            Tracking your conscious redirections and cognitive endurance.
           </p>
-
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C7FF72] text-[#050505] font-mono text-xs font-bold hover:bg-[#D5FFA0] transition-colors"
-          >
-            <span>UNLOCK WITH PRO (₹1,000 / MO)</span>
-          </Link>
-        </div>
-      ) : (
-        /* Full Pro/Max Graph */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-4 shadow-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-base font-bold text-white">8-WEEK TRANSFORMATION TIMELINE</h3>
-                <p className="font-mono text-xs text-muted">Urge frequency vs Cognitive resistance capacity</p>
-              </div>
-              <div className="flex items-center gap-3 font-mono text-[10px]">
-                <span className="flex items-center gap-1 text-white">
-                  <span className="w-2 h-2 rounded-full bg-white inline-block" /> Urges
-                </span>
-                <span className="flex items-center gap-1 text-[#C7FF72]">
-                  <span className="w-2 h-2 rounded-full bg-[#C7FF72] inline-block" /> Control
-                </span>
-              </div>
-            </div>
-
-            <div className="h-48 w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={DEMO_8WEEK_JOURNEY}>
-                  <defs>
-                    <linearGradient id="areaUrgesDash" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FFFFFF" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="week" stroke="#444" tick={{ fontSize: 10, fill: '#888' }} />
-                  <YAxis stroke="#444" tick={{ fontSize: 10, fill: '#888' }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#111111',
-                      borderColor: 'rgba(255,255,255,0.15)',
-                      borderRadius: '12px',
-                      fontFamily: 'monospace',
-                      fontSize: '11px',
-                    }}
-                  />
-                  <Area type="monotone" dataKey="urges" stroke="#FFFFFF" strokeWidth={2} fill="url(#areaUrgesDash)" />
-                  <Area type="monotone" dataKey="resistance" stroke="#C7FF72" strokeWidth={2} strokeDasharray="3 3" fill="none" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Control Arc Gauge */}
-          <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 flex flex-col justify-between space-y-4 shadow-card">
-            <div>
-              <span className="font-mono text-[10px] text-subtle uppercase">RESISTANCE CAPACITY</span>
-              <h3 className="font-display text-base font-bold text-white mt-0.5">URGE CONTROL GAUGE</h3>
-              <p className="font-mono text-xs text-muted mt-1">Measured on a 1-10 self-control scale.</p>
-            </div>
-
-            <div className="relative w-36 h-36 mx-auto flex items-center justify-center">
-              <svg width={144} height={144} className="rotate-[-90deg]">
-                <circle cx={72} cy={72} r={56} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={8} />
-                <motion.circle
-                  cx={72} cy={72} r={56} fill="none"
-                  stroke="#C7FF72" strokeWidth={8} strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 56}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 56 }}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 56 * (1 - 0.82) }}
-                  transition={{ duration: 1.5, ease: EASE }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="font-numbers text-3xl font-bold text-white">8.2</span>
-                <span className="font-mono text-[9px] text-subtle">OUT OF 10</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-xs font-mono pt-2 border-t border-white/5">
-              <span className="text-subtle">Baseline: 4.2</span>
-              <span className="text-[#C7FF72] flex items-center gap-1 font-bold">
-                <ArrowUpRight size={12} /> +95% Control
-              </span>
-            </div>
+          <div className="pt-2">
+            <Link
+              href="/progress"
+              className="text-[#C7FF72] hover:underline font-mono text-xs font-bold flex items-center gap-1"
+            >
+              <span>View Longitudinal Trajectory</span>
+              <ArrowRight size={12} />
+            </Link>
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-// ============================================================
-// 6. PHYSICAL ACTIVITY MODULE (WALK / RUN / STEPS)
-// ============================================================
-function ActivitySection() {
-  const { activities } = useUserStore()
-  const totalKm = activities.reduce((acc, a) => acc + a.distanceKm, 0)
-  const totalSteps = activities.reduce((acc, a) => acc + a.steps, 0)
-  const totalMinutes = activities.reduce((acc, a) => acc + a.durationMinutes, 0)
-  const isNew = activities.length === 0
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <SectionLabel>ACTIVITY</SectionLabel>
-        <Link href="/activity" className="font-mono text-[11px] text-subtle hover:text-white transition-colors flex items-center gap-1">
-          <span>Live Tracker</span>
-          <ChevronRight size={12} />
-        </Link>
-      </div>
-
-      {isNew ? (
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 text-center space-y-3 shadow-card">
-          <Footprints size={24} className="mx-auto text-subtle" />
-          <div className="space-y-1">
-            <h4 className="font-display text-sm font-bold text-white">No activity yet.</h4>
-            <p className="font-mono text-xs text-muted max-w-md mx-auto">
-              Start a walk or run when you&apos;re ready. Real physical movement restores dopamine sensitivity.
-            </p>
-          </div>
-          <Link
-            href="/activity"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C7FF72] text-[#050505] font-mono text-xs font-bold hover:bg-[#D5FFA0] transition-colors shadow-[0_0_15px_rgba(199,255,114,0.18)]"
-          >
-            <span>START FIRST RUN / WALK (+80 XP)</span>
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
-            <span className="font-mono text-[10px] text-subtle uppercase">TODAY&apos;S STEPS</span>
-            <div className="font-numbers text-2xl font-bold text-white">{totalSteps.toLocaleString()}</div>
-            <p className="font-mono text-[10px] text-muted">Step counter sensor</p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
-            <span className="font-mono text-[10px] text-subtle uppercase">DISTANCE</span>
-            <div className="font-numbers text-2xl font-bold text-white">{totalKm.toFixed(2)} KM</div>
-            <p className="font-mono text-[10px] text-muted">Outdoor / treadmill GPS</p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-1 shadow-card">
-            <span className="font-mono text-[10px] text-subtle uppercase">ACTIVE TIME</span>
-            <div className="font-numbers text-2xl font-bold text-white">{totalMinutes} MIN</div>
-            <p className="font-mono text-[10px] text-muted">Physical reset workouts</p>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================================
-// 7. FUTURE SELF (YOUR NEXT 30 DAYS) & TIME RECLAIMED
-// ============================================================
-function FutureSelfAndTimeReclaimed() {
-  const { currentLevel, totalXP } = useUserStore()
-  const isNew = totalXP === 0
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Feature: YOUR NEXT 30 DAYS */}
-      <div>
-        <SectionLabel>FUTURE SELF</SectionLabel>
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Compass size={18} className="text-[#C7FF72]" />
-              <h3 className="font-display text-sm font-bold text-white uppercase tracking-wider">
-                YOUR NEXT 30 DAYS
-              </h3>
-            </div>
-            <span className="font-mono text-[10px] text-subtle uppercase">POSSIBLE PROGRESS</span>
-          </div>
-
-          <p className="font-sans text-xs text-muted leading-relaxed">
-            Based on your active habits and quests, here is what you can work toward over the coming month:
-          </p>
-
-          <div className="space-y-2.5 font-mono text-xs">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-              <CheckCircle2 size={14} className="text-[#C7FF72]" />
-              <span className="text-white">Complete 20 focus sessions</span>
-            </div>
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-              <CheckCircle2 size={14} className="text-[#C7FF72]" />
-              <span className="text-white">Build 12 replacement habits (Chess &amp; Reading)</span>
-            </div>
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-              <CheckCircle2 size={14} className="text-[#C7FF72]" />
-              <span className="text-white">Complete 8 outdoor activity sessions</span>
-            </div>
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-              <CheckCircle2 size={14} className="text-[#C7FF72]" />
-              <span className="text-white">Ignite Constellation Level {Math.min(10, currentLevel + 1)}</span>
-            </div>
-          </div>
-
-          <div className="font-mono text-[10px] text-subtle">
-            * Illustrative roadmap to guide daily consistency.
-          </div>
-        </div>
-      </div>
-
-      {/* Feature: TIME RECLAIMED */}
-      <div>
-        <SectionLabel>TIME RECLAIMED</SectionLabel>
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Hourglass size={18} className="text-[#C7FF72]" />
-              <h3 className="font-display text-sm font-bold text-white uppercase tracking-wider">
-                TIME REDIRECTED
-              </h3>
-            </div>
-            <span className="font-mono text-[10px] text-subtle">THIS MONTH</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-[#C7FF72]/[0.06] border border-[#C7FF72]/30 flex items-baseline justify-between">
-            <div>
-              <div className="font-numbers text-3xl font-bold text-white">
-                {isNew ? '0H 00M' : '4H 30M'}
-              </div>
-              <div className="font-mono text-[10px] text-subtle">Redirected from triggers</div>
-            </div>
-            <span className="font-mono text-xs px-2.5 py-1 rounded-full bg-[#C7FF72]/15 text-[#C7FF72] font-bold">
-              {isNew ? 'Ready to Reclaim' : 'Time Restored'}
-            </span>
-          </div>
-
-          <p className="font-sans text-xs text-muted leading-relaxed">
-            {isNew
-              ? 'As you deflect urges with 5-minute resets, the hours you would have spent in compulsive loops will calculate here as reclaimed opportunity.'
-              : 'You redirected approximately 4h 30m this month. That represents:'}
-          </p>
-
-          {!isNew && (
-            <div className="grid grid-cols-3 gap-2 font-mono text-center text-xs">
-              <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="font-numbers text-sm font-bold text-white">18 ×</span>
-                <div className="text-[10px] text-subtle">15m Focus</div>
-              </div>
-              <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="font-numbers text-sm font-bold text-white">9 ×</span>
-                <div className="text-[10px] text-subtle">30m Study</div>
-              </div>
-              <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="font-numbers text-sm font-bold text-white">4 ×</span>
-                <div className="text-[10px] text-subtle">1h Deep Work</div>
-              </div>
-            </div>
-          )}
-
-          <div className="font-mono text-[10px] text-subtle">
-            Illustrative comparison based on active check-ins.
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ============================================================
-// 8. GLOBAL UNBOUND & WEEKLY REPORT
-// ============================================================
-function GlobalAndWeekly() {
-  const { totalXP, leaderboardOptIn } = useUserStore()
-  const isNew = totalXP === 0
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Global Unbound */}
-      <div>
-        <SectionLabel>GLOBAL UNBOUND</SectionLabel>
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Globe size={18} className="text-white" />
-              <h3 className="font-display text-sm font-bold text-white">ANONYMOUS STANDING</h3>
-            </div>
-            <span className="font-mono text-[10px] text-subtle">
-              {leaderboardOptIn ? 'OPT-IN ACTIVE' : 'PRIVATE'}
-            </span>
-          </div>
-
-          {isNew ? (
-            <p className="font-mono text-xs text-muted">
-              Earn your first XP to enter the global ranking. UNBOUND ranks members solely on healthy consistency and Recovery XP.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5 font-mono text-xs">
-                <span className="text-white font-bold">Your Standing</span>
-                <span className="text-[#C7FF72] font-numbers font-bold">#4,821 / 18,400</span>
-              </div>
-              <p className="font-sans text-xs text-muted leading-relaxed">
-                Zero sensitive health data is exposed. Privacy-first architecture guarantees your personal logs remain 100% confidential.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Weekly Report */}
-      <div>
-        <SectionLabel>THIS WEEK</SectionLabel>
-        <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-md border border-white/10 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-[#C7FF72]" />
-              <h3 className="font-display text-sm font-bold text-white">WEEKLY SYNTHESIS</h3>
-            </div>
-            <span className="font-mono text-[10px] text-subtle">SECTION 54</span>
-          </div>
-
-          {isNew ? (
-            <p className="font-mono text-xs text-muted">
-              Your first weekly behavioral report generates automatically on Sunday as check-ins accumulate.
-            </p>
-          ) : (
-            <div className="space-y-3 font-mono text-xs">
-              <div className="flex items-center justify-between text-muted pb-2 border-b border-white/5">
-                <span>Active Days</span>
-                <span className="text-white font-bold">6 / 7 DAYS (+420 XP)</span>
-              </div>
-              <div className="flex items-center justify-between text-muted pb-2 border-b border-white/5">
-                <span>Best Replacement</span>
-                <span className="text-[#C7FF72] font-bold">Chess</span>
-              </div>
-              <div className="flex items-center justify-between text-muted pb-2 border-b border-white/5">
-                <span>Next Mission</span>
-                <span className="text-white font-bold">Break the late-night phone loop</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
@@ -887,10 +618,25 @@ function GlobalAndWeekly() {
 // MAIN DASHBOARD PAGE
 // ============================================================
 export default function DashboardPage() {
-  const { displayName, totalXP, currentLevel, currentStreak, plan, setSeedState, setPlan } = useUserStore()
+  const {
+    displayName,
+    totalXP,
+    currentLevel,
+    currentStreak,
+    plan,
+    syncWithServer,
+    setSeedState,
+    setPlan,
+  } = useUserStore()
+
   const [levelUpOpen, setLevelUpOpen] = useState(false)
   const [focusTimerOpen, setFocusTimerOpen] = useState(false)
   const [dailyCheckinOpen, setDailyCheckinOpen] = useState(false)
+
+  // Sync real database records on mount
+  useEffect(() => {
+    syncWithServer()
+  }, [syncWithServer])
 
   // Time-aware greeting
   const [greeting, setGreeting] = useState('Good evening')
@@ -904,7 +650,6 @@ export default function DashboardPage() {
   const name = displayName || 'Seeker'
   const isNewUser = totalXP === 0 && currentStreak === 0
 
-  // Adaptive subtitle based on state
   const adaptiveSubtitle = isNewUser
     ? 'Your journey starts here. Complete your first action to begin building your progress.'
     : currentStreak === 3
@@ -917,7 +662,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-      {/* 1. Header with Personalized Time-aware Greeting & Compact Plan Badge */}
+      {/* 1. Header with Personalized Time-aware Greeting */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-white">
@@ -945,7 +690,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Comeback Mode Banner (no-shame re-entry if applicable) */}
+      {/* Comeback Mode Banner */}
       <ComebackBanner />
 
       {/* 2. Hero Recovery (Streak, Level, XP) */}
@@ -975,28 +720,25 @@ export default function DashboardPage() {
         </motion.div>
       </Link>
 
-      {/* 4. Adaptive Daily Briefing */}
+      {/* 4. Adaptive Daily Briefing with real water & activity */}
       <DailyBrief onOpenCheckin={() => setDailyCheckinOpen(true)} />
 
-      {/* 5. YOUR NEXT STEP (Singular Next Best Action Card) */}
+      {/* 5. YOUR NEXT STEP */}
       <NextBestAction onOpenFocus={() => setFocusTimerOpen(true)} />
 
       {/* 6. Today's Metrics */}
       <TodayMetrics onOpenFocus={() => setFocusTimerOpen(true)} />
 
-      {/* 7. Today's Quests */}
+      {/* 7. Today's Wellbeing Module (Hydration + Nutrition) */}
+      <TodayWellbeingPreview />
+
+      {/* 8. Today's Quests */}
       <QuestsSection onOpenFocus={() => setFocusTimerOpen(true)} />
 
-      {/* 8. Personal Insights */}
-      <PersonalInsights />
-
-      {/* 9. Your Journey (Growth Graph & Gauge) */}
+      {/* 9. Your Journey (Real Data) */}
       <JourneySection />
 
-      {/* 10. Physical Activity Module */}
-      <ActivitySection />
-
-      {/* 11. Progress Constellation System (Signature Feature) */}
+      {/* 10. Progress Constellation */}
       <div>
         <SectionLabel>PROGRESS CONSTELLATION</SectionLabel>
         <ProgressConstellation
@@ -1006,20 +748,14 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* 12. Future Self (Next 30 Days) & Time Reclaimed */}
-      <FutureSelfAndTimeReclaimed />
-
-      {/* 13. Global Unbound & Weekly Report */}
-      <GlobalAndWeekly />
-
       {/* Modals */}
       <LevelUpModal
         isOpen={levelUpOpen}
         onClose={() => setLevelUpOpen(false)}
-        levelNumber={currentLevel || 7}
-        levelTitle={currentLevel === 8 ? 'UNBOUND' : 'CONSISTENCY'}
-        xpEarned={totalXP || 2840}
-        badgeTitle="Autonomous Mastery"
+        levelNumber={currentLevel || 1}
+        levelTitle={currentLevel >= 8 ? 'UNBOUND' : 'AWARENESS'}
+        xpEarned={totalXP || 0}
+        badgeTitle="Conscious Step"
       />
 
       <FocusTimerModal
@@ -1031,54 +767,6 @@ export default function DashboardPage() {
         isOpen={dailyCheckinOpen}
         onClose={() => setDailyCheckinOpen(false)}
       />
-
-      {/* Evaluation Simulator Toolbar */}
-      <div className="pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 font-mono text-[10px] text-subtle">
-        <span>QA State Simulator:</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSeedState('new')}
-            className={`px-2.5 py-1 rounded border transition-colors cursor-pointer ${
-              isNewUser ? 'bg-white text-black font-bold border-white' : 'hover:text-white border-white/10'
-            }`}
-          >
-            Zero State (0 XP)
-          </button>
-          <button
-            onClick={() => setSeedState('active')}
-            className={`px-2.5 py-1 rounded border transition-colors cursor-pointer ${
-              !isNewUser ? 'bg-white text-black font-bold border-white' : 'hover:text-white border-white/10'
-            }`}
-          >
-            Active State (17D, 2840 XP)
-          </button>
-          <span className="text-white/20">|</span>
-          <button
-            onClick={() => setPlan('free')}
-            className={`px-2 py-1 rounded border transition-colors cursor-pointer ${
-              plan === 'free' ? 'bg-[#C7FF72] text-[#050505] font-bold border-[#C7FF72]' : 'hover:text-white border-white/10'
-            }`}
-          >
-            Free
-          </button>
-          <button
-            onClick={() => setPlan('pro')}
-            className={`px-2 py-1 rounded border transition-colors cursor-pointer ${
-              plan === 'pro' ? 'bg-[#C7FF72] text-[#050505] font-bold border-[#C7FF72]' : 'hover:text-white border-white/10'
-            }`}
-          >
-            Pro
-          </button>
-          <button
-            onClick={() => setPlan('max')}
-            className={`px-2 py-1 rounded border transition-colors cursor-pointer ${
-              plan === 'max' ? 'bg-[#C7FF72] text-[#050505] font-bold border-[#C7FF72]' : 'hover:text-white border-white/10'
-            }`}
-          >
-            Max
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
