@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, Component, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -23,6 +23,47 @@ import { DailyCheckinModal } from '@/components/dashboard/DailyCheckinModal'
 import { DailyBrief } from '@/components/dashboard/DailyBrief'
 import { ProgressConstellation } from '@/components/ui/ProgressConstellation'
 import { Logo } from '@/components/ui/Logo'
+
+interface ErrorBoundaryProps {
+  title: string
+  children: ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+}
+
+class WidgetErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error(`Dashboard widget [${this.props.title}] error:`, error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-5 rounded-2xl bg-card/60 backdrop-blur-md border border-white/10 text-muted font-mono text-xs flex items-center justify-between shadow-card">
+          <span>{this.props.title} preview temporarily unavailable.</span>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="text-[#C7FF72] hover:underline cursor-pointer font-bold"
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
@@ -100,13 +141,14 @@ function ComebackBanner() {
 // ============================================================
 function RecoveryHero({ onOpenLevelUp }: { onOpenLevelUp: () => void }) {
   const { currentStreak, totalXP, longestStreak } = useUserStore()
-  const isNewUser = totalXP === 0 && currentStreak === 0
-  const xpProgress = getXPProgress(totalXP)
-  const streak = currentStreak
+  const streak = Number.isFinite(currentStreak) ? currentStreak : 0
+  const xp = Number.isFinite(totalXP) ? totalXP : 0
+  const isNewUser = xp === 0 && streak === 0
+  const xpProgress = getXPProgress(xp)
   const maxStroke = 2 * Math.PI * 40
   const strokeOffset = isNewUser
     ? maxStroke
-    : maxStroke * (1 - Math.min(1, streak / 30))
+    : maxStroke * (1 - Math.min(1, Math.max(0, streak) / 30))
 
   return (
     <div className="p-6 md:p-8 rounded-3xl bg-card/85 backdrop-blur-md border border-white/10 shadow-card relative overflow-hidden">
@@ -356,8 +398,11 @@ function TodayMetrics({ onOpenFocus }: { onOpenFocus: () => void }) {
 // ============================================================
 function TodayWellbeingPreview() {
   const { todayWaterMl, dailyWaterGoalMl, foodLogs, addWater } = useUserStore()
-  const waterPercent = dailyWaterGoalMl > 0 ? Math.min(100, Math.round((todayWaterMl / dailyWaterGoalMl) * 100)) : 0
-  const remainingMl = Math.max(0, dailyWaterGoalMl - todayWaterMl)
+  const water = Number.isFinite(todayWaterMl) ? todayWaterMl : 0
+  const goal = (Number.isFinite(dailyWaterGoalMl) && dailyWaterGoalMl > 0) ? dailyWaterGoalMl : 2500
+  const safeFoodLogs = Array.isArray(foodLogs) ? foodLogs : []
+  const waterPercent = Math.min(100, Math.round((water / goal) * 100))
+  const remainingMl = Math.max(0, goal - water)
 
   return (
     <div>
@@ -452,11 +497,11 @@ function TodayWellbeingPreview() {
 
           <div className="space-y-1">
             <div className="font-numbers text-3xl font-bold text-white">
-              {foodLogs.length > 0 ? `${foodLogs.length} MEALS` : 'NO DATA YET'}
+              {safeFoodLogs.length > 0 ? `${safeFoodLogs.length} MEALS` : 'NO DATA YET'}
             </div>
             <p className="font-mono text-xs text-muted">
-              {foodLogs.length > 0
-                ? `${foodLogs.map((l) => l.food_name).slice(0, 2).join(', ')}${foodLogs.length > 2 ? '…' : ''}`
+              {safeFoodLogs.length > 0
+                ? `${safeFoodLogs.map((l) => l.food_name).slice(0, 2).join(', ')}${safeFoodLogs.length > 2 ? '…' : ''}`
                 : 'Start tracking whole foods to balance cognitive energy.'}
             </p>
           </div>
@@ -466,7 +511,7 @@ function TodayWellbeingPreview() {
               href="/wellbeing"
               className="text-[#C7FF72] hover:underline flex items-center gap-1 font-bold"
             >
-              <span>{foodLogs.length > 0 ? 'View Nutrition Breakdown' : 'Log your first meal'}</span>
+              <span>{safeFoodLogs.length > 0 ? 'View Nutrition Breakdown' : 'Log your first meal'}</span>
               <ArrowRight size={11} />
             </Link>
           </div>
@@ -771,7 +816,9 @@ export default function DashboardPage() {
       <ComebackBanner />
 
       {/* 2. Hero Recovery (Streak, Level, XP) */}
-      <RecoveryHero onOpenLevelUp={() => setLevelUpOpen(true)} />
+      <WidgetErrorBoundary title="Recovery Hero">
+        <RecoveryHero onOpenLevelUp={() => setLevelUpOpen(true)} />
+      </WidgetErrorBoundary>
 
       {/* 3. Primary CTA: I'M HAVING AN URGE */}
       <Link href="/urge">
@@ -798,32 +845,46 @@ export default function DashboardPage() {
       </Link>
 
       {/* 4. Adaptive Daily Briefing with real water & activity */}
-      <DailyBrief onOpenCheckin={() => setDailyCheckinOpen(true)} />
+      <WidgetErrorBoundary title="Daily Briefing">
+        <DailyBrief onOpenCheckin={() => setDailyCheckinOpen(true)} />
+      </WidgetErrorBoundary>
 
       {/* 5. YOUR NEXT STEP */}
-      <NextBestAction onOpenFocus={() => setFocusTimerOpen(true)} />
+      <WidgetErrorBoundary title="Next Action">
+        <NextBestAction onOpenFocus={() => setFocusTimerOpen(true)} />
+      </WidgetErrorBoundary>
 
       {/* 6. Today's Metrics */}
-      <TodayMetrics onOpenFocus={() => setFocusTimerOpen(true)} />
+      <WidgetErrorBoundary title="Today's Metrics">
+        <TodayMetrics onOpenFocus={() => setFocusTimerOpen(true)} />
+      </WidgetErrorBoundary>
 
       {/* 7. Today's Wellbeing Module (Hydration + Nutrition) */}
-      <TodayWellbeingPreview />
+      <WidgetErrorBoundary title="Wellbeing Preview">
+        <TodayWellbeingPreview />
+      </WidgetErrorBoundary>
 
       {/* 8. Today's Quests */}
-      <QuestsSection onOpenFocus={() => setFocusTimerOpen(true)} />
+      <WidgetErrorBoundary title="Today's Quests">
+        <QuestsSection onOpenFocus={() => setFocusTimerOpen(true)} />
+      </WidgetErrorBoundary>
 
       {/* 9. Your Journey (Real Data) */}
-      <JourneySection />
+      <WidgetErrorBoundary title="Telemetry Pulse">
+        <JourneySection />
+      </WidgetErrorBoundary>
 
       {/* 10. Progress Constellation */}
-      <div>
-        <SectionLabel>PROGRESS CONSTELLATION</SectionLabel>
-        <ProgressConstellation
-          currentLevel={currentLevel || 1}
-          totalXP={totalXP || 0}
-          compact={false}
-        />
-      </div>
+      <WidgetErrorBoundary title="Progress Constellation">
+        <div>
+          <SectionLabel>PROGRESS CONSTELLATION</SectionLabel>
+          <ProgressConstellation
+            currentLevel={currentLevel || 1}
+            totalXP={totalXP || 0}
+            compact={false}
+          />
+        </div>
+      </WidgetErrorBoundary>
 
       {/* Modals */}
       <LevelUpModal

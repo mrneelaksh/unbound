@@ -11,14 +11,19 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await getCurrentUser()
+  let user = null
+  try {
+    user = await getCurrentUser()
+  } catch (err) {
+    console.error('Error verifying user session in DashboardLayout:', err)
+  }
 
   if (!user) {
     redirect('/auth/login?next=/dashboard')
   }
 
   return (
-    <div className="flex min-h-dvh bg-bg">
+    <div className="flex min-h-dvh bg-bg relative z-10">
       {/* Desktop Sidebar */}
       <Sidebar />
 

@@ -109,12 +109,55 @@ export function checkRateLimit(key: string, limit: number = 5, windowMs: number 
 }
 
 // ============================================================
-// SESSION MANAGEMENT
+// SESSION MANAGEMENT (Serverless-Resilient Signed Payload)
 // ============================================================
-export async function createLocalSession(userId: string): Promise<string> {
-  const token = crypto.randomBytes(32).toString('hex')
+export interface SessionPayload {
+  userId: string
+  email?: string
+  firstName?: string
+  displayName?: string
+  totalXP?: number
+  currentLevel?: number
+  currentStreak?: number
+  longestStreak?: number
+  dailyWaterGoalMl?: number
+  onboardingCompleted?: boolean
+  createdAt: number
+}
+
+export async function createLocalSession(
+  userId: string,
+  extraData?: Partial<SessionPayload>
+): Promise<string> {
+  const user = dbFindUserById(userId)
+  const profile = dbGetProfile(userId)
+  const stats = dbGetUserStats(userId)
+  const goal = dbGetWaterGoal(userId)
+
+  const payload: SessionPayload = {
+    userId,
+    email: user?.email || extraData?.email || '',
+    firstName: user?.first_name || extraData?.firstName || 'Seeker',
+    displayName: profile?.display_name || user?.first_name || extraData?.displayName || 'Seeker',
+    totalXP: stats?.total_xp ?? extraData?.totalXP ?? 0,
+    currentLevel: stats?.current_level ?? extraData?.currentLevel ?? 1,
+    currentStreak: stats?.current_streak ?? extraData?.currentStreak ?? 0,
+    longestStreak: stats?.longest_streak ?? extraData?.longestStreak ?? 0,
+    dailyWaterGoalMl: goal ?? extraData?.dailyWaterGoalMl ?? 2500,
+    onboardingCompleted: !!profile?.onboarding_completed,
+    createdAt: Date.now(),
+  }
+
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  const randomSuffix = crypto.randomBytes(16).toString('hex')
+  const token = `${payloadB64}_${randomSuffix}`
+
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000).toISOString()
-  dbCreateSession(token, userId, expiresAt)
+  try {
+    dbCreateSession(token, userId, expiresAt)
+  } catch {
+    // If SQLite is read-only or in ephemeral lambda, token payload is self-authenticating
+  }
 
   const cookieStore = await cookies()
   const signed = signCookie(token)
@@ -137,7 +180,9 @@ export async function clearLocalSession(): Promise<void> {
   if (rawCookie) {
     const token = unsignCookie(rawCookie)
     if (token) {
-      dbDeleteSession(token)
+      try {
+        dbDeleteSession(token)
+      } catch {}
     }
   }
 
@@ -216,7 +261,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     }
   }
 
-  // Local development auth via local SQLite
+  // Local / Serverless standalone auth
   const cookieStore = await cookies()
   const rawCookie = cookieStore.get(AUTH_COOKIE_NAME)?.value
   if (!rawCookie) return null
@@ -224,28 +269,61 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const token = unsignCookie(rawCookie)
   if (!token) return null
 
-  const session = dbFindSession(token)
-  if (!session) return null
+  // 1. Parse embedded cryptographically verified payload
+  let embeddedPayload: SessionPayload | null = null
+  try {
+    const payloadPart = token.split('_')[0]
+    if (payloadPart) {
+      embeddedPayload = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf-8'))
+    }
+  } catch {}
 
-  const user = dbFindUserById(session.user_id)
-  if (!user) return null
+  // 2. Attempt SQLite database lookup
+  let dbUser: any = null
+  let dbProf: any = null
+  let dbStats: any = null
+  let dbGoal: number | null = null
 
-  const profile = dbGetProfile(user.id)
-  const stats = dbGetUserStats(user.id)
-  const goal = dbGetWaterGoal(user.id)
+  try {
+    const session = dbFindSession(token)
+    const targetUserId = session?.user_id || embeddedPayload?.userId
+    if (targetUserId) {
+      dbUser = dbFindUserById(targetUserId)
+      dbProf = dbGetProfile(targetUserId)
+      dbStats = dbGetUserStats(targetUserId)
+      dbGoal = dbGetWaterGoal(targetUserId)
+    }
+  } catch {
+    // If SQLite is unavailable, fallback entirely to verified token payload
+  }
+
+  const userId = dbUser?.id || embeddedPayload?.userId
+  if (!userId) return null
+
+  const email = dbUser?.email || embeddedPayload?.email || ''
+  const firstName = dbUser?.first_name || embeddedPayload?.firstName || 'Seeker'
+  const displayName = dbProf?.display_name || dbUser?.first_name || embeddedPayload?.displayName || firstName
+  const totalXP = dbStats?.total_xp ?? embeddedPayload?.totalXP ?? 0
+  const currentLevel = dbStats?.current_level ?? embeddedPayload?.currentLevel ?? 1
+  const currentStreak = dbStats?.current_streak ?? embeddedPayload?.currentStreak ?? 0
+  const longestStreak = dbStats?.longest_streak ?? embeddedPayload?.longestStreak ?? 0
+  const dailyWaterGoalMl = dbGoal ?? embeddedPayload?.dailyWaterGoalMl ?? 2500
+  const onboardingCompleted = dbProf?.onboarding_completed !== undefined
+    ? !!dbProf.onboarding_completed
+    : !!embeddedPayload?.onboardingCompleted
 
   return {
-    id: user.id,
-    email: user.email,
-    displayName: profile?.display_name || user.first_name,
-    firstName: user.first_name,
-    avatarUrl: profile?.avatar_url || null,
-    totalXP: stats?.total_xp || 0,
-    currentLevel: stats?.current_level || 1,
-    currentStreak: stats?.current_streak || 0,
-    longestStreak: stats?.longest_streak || 0,
-    dailyWaterGoalMl: goal,
-    onboardingCompleted: !!profile?.onboarding_completed,
+    id: userId,
+    email,
+    displayName,
+    firstName,
+    avatarUrl: dbProf?.avatar_url || null,
+    totalXP,
+    currentLevel,
+    currentStreak,
+    longestStreak,
+    dailyWaterGoalMl,
+    onboardingCompleted,
     isSupabase: false,
   }
 }

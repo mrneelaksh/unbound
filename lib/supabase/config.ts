@@ -10,12 +10,18 @@ export function isSupabaseConfigured(): boolean {
 
   const isPlaceholderUrl =
     url.includes('your_supabase_project_url') ||
-    url === 'your-supabase-url' ||
+    url.includes('your-project-ref') ||
+    url.includes('your-supabase') ||
+    url.includes('placeholder') ||
+    url.includes('example.com') ||
     !url.startsWith('http')
 
   const isPlaceholderKey =
     key.includes('your_supabase_anon_key') ||
-    key === 'your-anon-key'
+    key.includes('your-supabase-anon-key') ||
+    key.includes('your-anon-key') ||
+    key.includes('placeholder') ||
+    key.length < 20
 
   return !isPlaceholderUrl && !isPlaceholderKey
 }

@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (err: any) {
+    console.error('Signin error details:', err)
     return NextResponse.json(
       { error: 'An unexpected error occurred during sign in.' },
       { status: 500 }

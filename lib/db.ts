@@ -15,7 +15,12 @@ let dbInstance: DatabaseSync | null = null
 export function getLocalDb(): DatabaseSync {
   if (dbInstance) return dbInstance
 
-  dbInstance = new DatabaseSync(DB_PATH)
+  try {
+    dbInstance = new DatabaseSync(DB_PATH)
+  } catch {
+    dbInstance = new DatabaseSync(':memory:')
+  }
+
   dbInstance.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
